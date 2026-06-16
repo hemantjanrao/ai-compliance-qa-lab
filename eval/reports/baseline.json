@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "commit": "initial",
+  "timestamp": "2026-06-16T00:00:00+00:00",
+  "ragas": {
+    "anthropic": {
+      "faithfulness": 0.85,
+      "answer_relevancy": 0.85,
+      "context_precision": 0.78,
+      "context_recall": 0.78
+    },
+    "openai": {
+      "faithfulness": 0.85,
+      "answer_relevancy": 0.85,
+      "context_precision": 0.78,
+      "context_recall": 0.78
+    }
+  },
+  "latency_p95_ms": {
+    "anthropic": 3500,
+    "openai": 3200
+  },
+  "cost_per_query_usd": {
+    "anthropic": 0.004,
+    "openai": 0.002
+  },
+  "adversarial": {
+    "rag_passed": true,
+    "agent_passed": true
+  },
+  "agent": {
+    "cases_run": 8
+  },
+  "deepeval": {}
+}

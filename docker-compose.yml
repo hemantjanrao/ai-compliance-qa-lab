@@ -1,0 +1,35 @@
+# Local dev services for observability study.
+# ChromaDB runs embedded (./chroma_db) — no container needed.
+#
+# Langfuse Cloud (recommended for study): set keys in .env from cloud.langfuse.com
+# Self-hosted Langfuse (optional): docker compose up -d
+
+services:
+  langfuse-db:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: langfuse
+      POSTGRES_PASSWORD: langfuse
+      POSTGRES_DB: langfuse
+    volumes:
+      - langfuse_db:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+
+  langfuse:
+    image: langfuse/langfuse:2
+    restart: unless-stopped
+    depends_on:
+      - langfuse-db
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: postgresql://langfuse:langfuse@langfuse-db:5432/langfuse
+      NEXTAUTH_SECRET: change-me-for-local-dev-only
+      SALT: change-me-for-local-dev-only
+      NEXTAUTH_URL: http://localhost:3000
+      TELEMETRY_ENABLED: "false"
+
+volumes:
+  langfuse_db:

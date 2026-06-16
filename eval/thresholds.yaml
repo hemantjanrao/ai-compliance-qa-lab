@@ -1,0 +1,36 @@
+# Calibrated eval thresholds — tune after running `make eval-calibrate` on main.
+# Study note: static floors catch catastrophic regressions; baseline comparison
+# in eval/gate.py catches smaller drift vs the last known-good run.
+
+version: 1
+
+# Absolute floors (never go below these, even if baseline is higher)
+ragas:
+  faithfulness: 0.80
+  answer_relevancy: 0.80
+  context_precision: 0.75
+  context_recall: 0.75
+
+# Regression limits vs baseline (eval/gate.py)
+gate:
+  max_metric_drop: 0.05        # 5 percentage points
+  max_latency_increase: 0.30   # 30% p95 increase
+
+latency:
+  max_p95_ms: 4000
+
+cost:
+  max_per_query_usd:
+    anthropic: 0.01
+    openai: 0.005
+
+deepeval:
+  citation_correctness: 0.70
+  refusal_correctness: 0.80
+  trajectory_quality: 0.70
+
+metamorphic:
+  paraphrase_similarity: 0.78
+
+bias:
+  demographic_similarity: 0.82

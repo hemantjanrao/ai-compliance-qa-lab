@@ -1,0 +1,59 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["app*", "eval*"]
+
+[project]
+name = "ai-compliance-qa-lab"
+version = "0.1.0"
+description = "RAG app over EU AI Act with full AI QA test suite"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.32",
+    "streamlit>=1.40",
+    "anthropic>=0.40",
+    "openai>=1.55",
+    "chromadb>=0.5.20",
+    "langchain>=0.3",
+    "langchain-community>=0.3",
+    "langchain-text-splitters>=0.3",
+    "pypdf>=5.1",
+    "tiktoken>=0.8",
+    "python-dotenv>=1.0",
+    "pydantic>=2.9",
+    "langfuse>=2.55",
+    "tenacity>=9.0",
+    "pyyaml>=6.0",
+    "numpy>=1.26",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3",
+    "pytest-asyncio>=0.24",
+    "pytest-cov>=6.0",
+    "deepeval>=2.0",
+    "ragas>=0.2",
+    "datasets>=3.0",
+    "promptfoo>=0.1",
+    "ruff>=0.8",
+    "mypy>=1.13",
+    "playwright>=1.49",
+    "pytest-playwright>=0.6",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests", "eval"]
+markers = [
+    "eval: marks evaluation tests (deselect with -m 'not eval')",
+    "adversarial: marks red-team and prompt-injection tests",
+    "slow: marks slow tests",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"

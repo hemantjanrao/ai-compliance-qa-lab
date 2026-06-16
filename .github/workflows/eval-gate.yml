@@ -1,0 +1,156 @@
+name: Eval Gate
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  unit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install -e ".[dev]"
+      - run: make unit
+
+  eval-fast:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: unit
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install -e ".[dev]"
+
+      - uses: actions/cache@v4
+        with:
+          path: chroma_db
+          key: chroma-${{ hashFiles('corpus/eu_ai_act.pdf') }}
+
+      - name: Ingest corpus
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          if [ ! -d chroma_db ] || [ "$(find chroma_db -type f | wc -l)" -eq 0 ]; then
+            if [ -f corpus/eu_ai_act.pdf ]; then
+              python scripts/ingest_corpus.py
+            else
+              echo "SKIP: corpus/eu_ai_act.pdf not in repo (download manually for full eval)"
+              exit 0
+            fi
+          fi
+
+      - name: Adversarial + budget (fast eval)
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          pytest eval/test_adversarial.py eval/agent/test_adversarial.py eval/test_budget.py -v -m "not slow" --tb=short
+          python -m eval.gate --markdown eval/reports/gate-summary.md || true
+
+      - name: Upload eval report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eval-report-fast
+          path: eval/reports/
+
+  eval-full:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    needs: unit
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install -e ".[dev]"
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            chroma_db
+            .eval_cache
+          key: eval-${{ hashFiles('corpus/eu_ai_act.pdf', 'eval/datasets/golden.jsonl') }}
+
+      - name: Ingest corpus
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          if [ -f corpus/eu_ai_act.pdf ]; then python scripts/ingest_corpus.py; fi
+
+      - name: Full eval suite
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          EVAL_USE_CACHE: "1"
+        run: pytest eval/ -v --tb=short
+
+      - name: Eval gate
+        run: python -m eval.gate --markdown eval/reports/gate-summary.md
+
+      - name: Promote baseline on main
+        if: github.ref == 'refs/heads/main' && success()
+        run: python -m eval.gate --promote
+
+      - name: Upload reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eval-report-full
+          path: eval/reports/
+
+  eval-gate-pr:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    needs: unit
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install -e ".[dev]"
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            chroma_db
+            .eval_cache
+          key: eval-${{ hashFiles('corpus/eu_ai_act.pdf', 'eval/datasets/golden.jsonl') }}
+
+      - name: Ingest corpus
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          if [ -f corpus/eu_ai_act.pdf ]; then python scripts/ingest_corpus.py; fi
+
+      - name: Full eval suite
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          EVAL_USE_CACHE: "1"
+        run: pytest eval/ -v --tb=short
+
+      - name: Eval gate (block merge on regression)
+        run: python -m eval.gate --markdown eval/reports/gate-summary.md
+
+      - name: Upload gate summary
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gate-summary
+          path: eval/reports/gate-summary.md
