@@ -19,6 +19,9 @@ USE_CACHE = os.getenv("EVAL_USE_CACHE", "1") != "0"
 
 
 def pytest_configure(config):
+    from dotenv import load_dotenv
+
+    load_dotenv()  # ensure .env loaded before any eval test imports providers
     ReportCollector.reset()
 
 

@@ -2,9 +2,13 @@
 
 Run:
   pytest eval/test_ragas.py -v -m eval
+  pytest eval/test_ragas.py -v -m eval -k anthropic   # one provider only
 """
 from __future__ import annotations
 
+import math
+
+import numpy as np
 import pytest
 from datasets import Dataset
 from ragas import evaluate
@@ -17,6 +21,7 @@ from ragas.metrics import (
 
 from app.rag import answer
 from eval.helpers import load_golden_rag, threshold
+from eval.ragas_config import get_ragas_embeddings, get_ragas_llm
 from eval.reporting import ReportCollector
 
 
@@ -53,11 +58,24 @@ def _run_metrics(provider: str) -> None:
     result = evaluate(
         ds,
         metrics=[faithfulness, answer_relevancy, context_precision, context_recall],
+        llm=get_ragas_llm(),
+        embeddings=get_ragas_embeddings(),
     )
     print(f"\n[{provider}] RAGAS scores: {result}")
 
+    df = result.to_pandas()
     for metric in ("faithfulness", "answer_relevancy", "context_precision", "context_recall"):
-        value = float(result[metric])
+        if metric not in df.columns:
+            pytest.fail(f"{metric} missing from RAGAS output")
+        value = float(np.nanmean(df[metric]))
+        nan_count = int(df[metric].isna().sum())
+        if nan_count:
+            print(f"  warning: {metric} had {nan_count}/{len(df)} NaN scores (judge timeout)")
+        if math.isnan(value):
+            pytest.fail(
+                f"{metric} is all NaN — RAGAS judge failed on every row. "
+                "Check ANTHROPIC_API_KEY and eval/ragas_config.py."
+            )
         ReportCollector.set(f"ragas.{provider}.{metric}", value)
         floor = threshold(f"ragas.{metric}", 0.75)
-        assert value >= floor, f"{metric} too low: {value} < {floor}"
+        assert value >= floor, f"{metric} too low: {value:.3f} < {floor}"
