@@ -64,7 +64,11 @@ class AgentRun:
 
 
 def run_agent(question: str, model: str | None = None, max_steps: int = MAX_STEPS) -> AgentRun:
-    with trace("run_agent", input={"question": question, "max_steps": max_steps}):
+    with trace(
+        "run_agent",
+        input={"question": question, "max_steps": max_steps},
+        as_type="agent",
+    ):
         run = _run_agent_loop(question, model=model, max_steps=max_steps)
     flush()
     return run
@@ -112,6 +116,7 @@ def _run_agent_loop(question: str, model: str | None, max_steps: int) -> AgentRu
                         f"tool.{block.name}",
                         input=block.input,
                         metadata={"step": step},
+                        as_type="tool",
                     ):
                         output = execute_tool(block.name, block.input)
                     run.trajectory.append(

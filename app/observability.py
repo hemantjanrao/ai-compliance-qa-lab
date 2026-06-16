@@ -2,15 +2,21 @@
 
 Study note: observability is not optional in AI QA. You need traces to debug
 *why* faithfulness dropped (bad retrieval? prompt drift? model change?).
+
+Uses Langfuse SDK v3+ API (start_as_current_observation).
 """
 from __future__ import annotations
 
 import os
 from contextlib import contextmanager
 from functools import wraps
-from typing import Any, Callable, TypeVar
+from typing import Any, Callable, Literal, TypeVar
 
 F = TypeVar("F", bound=Callable[..., Any])
+
+ObservationType = Literal[
+    "span", "generation", "embedding", "agent", "tool", "chain", "retriever", "evaluator", "guardrail"
+]
 
 _langfuse = None
 _enabled: bool | None = None
@@ -48,35 +54,61 @@ def flush() -> None:
 
 
 @contextmanager
-def trace(name: str, *, input: Any = None, metadata: dict | None = None):
-    """Langfuse trace context — no-op when keys are missing (unit tests, local dev)."""
+def trace(
+    name: str,
+    *,
+    input: Any = None,
+    metadata: dict | None = None,
+    as_type: ObservationType = "span",
+):
+    """Langfuse observation context — no-op when keys are missing."""
     lf = get_langfuse()
     if lf is None:
         yield None
         return
 
-    t = lf.trace(name=name, input=input, metadata=metadata or {})
     try:
-        yield t
-    except Exception as e:
-        t.update(level="ERROR", status_message=str(e))
-        raise
-    finally:
-        flush()
+        observation_cm = lf.start_as_current_observation(
+            name=name,
+            as_type=as_type,
+            input=input,
+            metadata=metadata or {},
+        )
+    except Exception:
+        # Langfuse unavailable — degrade gracefully without breaking the app
+        yield None
+        return
+
+    with observation_cm as obs:
+        try:
+            yield obs
+        except Exception as e:
+            try:
+                obs.update(level="ERROR", status_message=str(e))
+            except Exception:
+                pass
+            raise
 
 
-def observe(name: str | None = None) -> Callable[[F], F]:
-    """Decorator wrapping a function in a Langfuse trace."""
+def observe(
+    name: str | None = None,
+    as_type: ObservationType = "span",
+) -> Callable[[F], F]:
+    """Decorator wrapping a function in a Langfuse observation."""
 
     def decorator(fn: F) -> F:
         trace_name = name or fn.__name__
 
         @wraps(fn)
         def wrapper(*args: Any, **kwargs: Any) -> Any:
-            with trace(trace_name, input={"args": _safe(args), "kwargs": _safe(kwargs)}) as t:
+            with trace(
+                trace_name,
+                input={"args": _safe(args), "kwargs": _safe(kwargs)},
+                as_type=as_type,
+            ) as obs:
                 result = fn(*args, **kwargs)
-                if t is not None:
-                    t.update(output=_safe(result))
+                if obs is not None:
+                    obs.update(output=_safe(result))
                 return result
 
         return wrapper  # type: ignore[return-value]

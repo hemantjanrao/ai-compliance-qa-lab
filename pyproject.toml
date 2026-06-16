@@ -28,6 +28,7 @@ dependencies = [
     "tenacity>=9.0",
     "pyyaml>=6.0",
     "numpy>=1.26",
+    "sentence-transformers>=3.0",
 ]
 
 [project.optional-dependencies]

@@ -2,12 +2,11 @@
 from __future__ import annotations
 
 import json
-import os
 from pathlib import Path
 
 import numpy as np
-from openai import OpenAI
 
+from app.embeddings import embed_text
 from eval.reporting import load_thresholds
 
 GOLDEN_RAG = Path("eval/datasets/golden.jsonl")
@@ -23,12 +22,7 @@ def load_golden_agent() -> list[dict]:
 
 
 def embed(text: str) -> np.ndarray:
-    client = OpenAI()
-    resp = client.embeddings.create(
-        model=os.getenv("EMBEDDING_MODEL", "text-embedding-3-small"),
-        input=text,
-    )
-    return np.array(resp.data[0].embedding)
+    return embed_text(text)
 
 
 def cosine(a: np.ndarray, b: np.ndarray) -> float:

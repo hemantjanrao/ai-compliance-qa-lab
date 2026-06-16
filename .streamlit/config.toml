@@ -1,0 +1,6 @@
+[server]
+# Avoid Streamlit scanning transformers/torchvision (local embeddings dep)
+fileWatcherType = "poll"
+
+[browser]
+gatherUsageStats = false

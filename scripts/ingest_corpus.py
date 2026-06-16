@@ -16,7 +16,8 @@ from langchain_community.document_loaders import PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 import chromadb
-from chromadb.utils.embedding_functions import OpenAIEmbeddingFunction
+
+from app.embeddings import get_chroma_embedding_function, get_embedding_provider
 
 load_dotenv()
 
@@ -35,18 +36,18 @@ def main() -> int:
     print(f"Loaded {len(docs)} pages")
 
     splitter = RecursiveCharacterTextSplitter(
-        chunk_size=1000,
-        chunk_overlap=150,
+        chunk_size=2000,
+        chunk_overlap=100,
         separators=["\nArticle ", "\nChapter ", "\n\n", "\n", ". ", " "],
     )
     chunks = splitter.split_documents(docs)
     print(f"Split into {len(chunks)} chunks")
 
+    provider = get_embedding_provider()
+    print(f"Embedding provider: {provider}")
+
     client = chromadb.PersistentClient(path=os.getenv("CHROMA_PATH", "./chroma_db"))
-    embed_fn = OpenAIEmbeddingFunction(
-        api_key=os.environ["OPENAI_API_KEY"],
-        model_name=os.getenv("EMBEDDING_MODEL", "text-embedding-3-small"),
-    )
+    embed_fn = get_chroma_embedding_function()
     name = os.getenv("COLLECTION_NAME", "eu_ai_act")
     try:
         client.delete_collection(name)

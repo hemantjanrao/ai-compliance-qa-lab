@@ -5,8 +5,8 @@ import os
 from dataclasses import dataclass
 
 import chromadb
-from chromadb.utils.embedding_functions import OpenAIEmbeddingFunction
 
+from app.embeddings import get_chroma_embedding_function
 from app.observability import observe, trace
 from app.providers import LLMProvider, ProviderName, get_provider
 
@@ -48,10 +48,7 @@ class RAGResult:
 
 def _get_collection():
     client = chromadb.PersistentClient(path=os.getenv("CHROMA_PATH", "./chroma_db"))
-    embed_fn = OpenAIEmbeddingFunction(
-        api_key=os.environ["OPENAI_API_KEY"],
-        model_name=os.getenv("EMBEDDING_MODEL", "text-embedding-3-small"),
-    )
+    embed_fn = get_chroma_embedding_function()
     return client.get_or_create_collection(
         name=os.getenv("COLLECTION_NAME", "eu_ai_act"),
         embedding_function=embed_fn,
@@ -66,7 +63,7 @@ def collection_chunk_count() -> int:
         return 0
 
 
-@observe(name="retrieve")
+@observe(name="retrieve", as_type="retriever")
 def retrieve(question: str, k: int = 5) -> list[RetrievedChunk]:
     coll = _get_collection()
     res = coll.query(query_texts=[question], n_results=k)
@@ -84,7 +81,7 @@ def answer_with_chunks(
     """Generate an answer from pre-selected chunks (used by poisoned-retrieval tests)."""
     context = "\n\n".join(f"[Source: {c.source}]\n{c.text}" for c in chunks)
     llm: LLMProvider = get_provider(provider)
-    with trace("llm_generate", input={"provider": provider, "question": question}):
+    with trace("llm_generate", input={"provider": provider, "question": question}, as_type="generation"):
         resp = llm.generate(
             system=SYSTEM_PROMPT,
             user=USER_TEMPLATE.format(context=context, question=question),
@@ -99,7 +96,7 @@ def answer_with_chunks(
     )
 
 
-@observe(name="answer")
+@observe(name="answer", as_type="chain")
 def answer(question: str, provider: ProviderName = "anthropic", k: int = 5) -> RAGResult:
     chunks = retrieve(question, k=k)
     return answer_with_chunks(question, chunks, provider=provider)

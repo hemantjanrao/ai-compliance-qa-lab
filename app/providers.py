@@ -8,7 +8,24 @@ from typing import Literal
 
 from anthropic import Anthropic
 from openai import OpenAI
-from tenacity import retry, stop_after_attempt, wait_exponential
+from tenacity import retry, retry_if_exception, stop_after_attempt, wait_exponential
+
+
+def _is_retryable(exc: BaseException) -> bool:
+    """Don't retry auth failures or exhausted quota — they won't succeed on retry."""
+    msg = str(exc).lower()
+    if "insufficient_quota" in msg or "exceeded your current quota" in msg:
+        return False
+    if "invalid x-api-key" in msg or "authentication" in msg.lower():
+        return False
+    return True
+
+
+_retry = retry(
+    stop=stop_after_attempt(3),
+    wait=wait_exponential(min=2, max=30),
+    retry=retry_if_exception(_is_retryable),
+)
 
 ProviderName = Literal["anthropic", "openai"]
 
@@ -32,7 +49,7 @@ class AnthropicProvider(LLMProvider):
         self.client = Anthropic()
         self.model = model or os.getenv("ANTHROPIC_MODEL", "claude-haiku-4-5-20251001")
 
-    @retry(stop=stop_after_attempt(3), wait=wait_exponential(min=1, max=10))
+    @_retry
     def generate(self, system: str, user: str, max_tokens: int = 1024) -> LLMResponse:
         resp = self.client.messages.create(
             model=self.model,
@@ -54,7 +71,7 @@ class OpenAIProvider(LLMProvider):
         self.client = OpenAI()
         self.model = model or os.getenv("OPENAI_MODEL", "gpt-4o-mini")
 
-    @retry(stop=stop_after_attempt(3), wait=wait_exponential(min=1, max=10))
+    @_retry
     def generate(self, system: str, user: str, max_tokens: int = 1024) -> LLMResponse:
         resp = self.client.chat.completions.create(
             model=self.model,
