@@ -42,9 +42,18 @@ make promptfoo-eval # prompt v1 vs v2 regression
 
 ## Eval architecture (short)
 
+```mermaid
+flowchart LR
+  Tests[pytest suites] --> Report[current.json]
+  Report --> Gate[eval/gate.py]
+  Baseline[baseline.json] --> Gate
+  Floors[thresholds.yaml] --> Gate
+  Gate --> CI[CI enforces on PR / manual full run]
+```
+
 1. **Tests measure** → write `eval/reports/current.json` via `eval/reporting.py`
 2. **Gate compares** → `eval/gate.py` checks floors (`eval/thresholds.yaml`) + regression vs `eval/reports/baseline.json`
-3. **CI enforces** → PRs run `unit` only by default; API eval skipped unless secrets set; full eval via **Actions → Eval Gate → Run workflow**
+3. **CI enforces** → PRs run `unit` + `eval-fast` (skips API tests without secrets); full eval via **Actions → Eval Gate → Run workflow**
 
 ## Safety
 

@@ -8,40 +8,50 @@
 
 ## High-level flow
 
-```
-User question
-   │
-   ▼
-[Streamlit UI / FastAPI /query]
-   │
-   ▼
-[RAG core: retrieve top-k chunks from Chroma]
-   │
-   ▼
-[LLM provider (Anthropic | OpenAI) with grounded prompt]
-   │
-   ▼
-Answer + retrieved chunks  ──►  Langfuse trace (app/observability.py)
+```mermaid
+sequenceDiagram
+  participant U as User
+  participant API as Streamlit / FastAPI
+  participant RAG as RAG core
+  participant DB as ChromaDB
+  participant LLM as LLM provider
+  participant LF as Langfuse
+
+  U->>API: question
+  API->>RAG: retrieve + generate
+  RAG->>DB: top-k chunks
+  DB-->>RAG: context
+  RAG->>LLM: grounded prompt
+  LLM-->>RAG: answer
+  RAG-->>API: answer + chunks
+  API-->>U: response
+  RAG->>LF: trace (retrieve, answer, llm_generate)
 ```
 
 ## Agent flow
 
-```
-User question
-   │
-   ▼
-[FastAPI /agent  or  Streamlit Agent tab]
-   │
-   ▼
-[ReAct loop — Anthropic tool use, max 8 steps]
-   │
-   ├── search_ai_act  ──► RAG retrieve (no generation)
-   ├── lookup_article
-   ├── check_risk_tier
-   └── compute_fine
-   │
-   ▼
-Final answer + full trajectory  ──►  Langfuse trace
+```mermaid
+sequenceDiagram
+  participant U as User
+  participant API as Streamlit / FastAPI
+  participant A as ReAct agent
+  participant T as Tools
+  participant LLM as Anthropic
+  participant LF as Langfuse
+
+  U->>API: question
+  API->>A: run_agent (max 8 steps)
+  loop ReAct loop
+    A->>LLM: messages + tool schemas
+    LLM-->>A: tool call or final answer
+  opt tool call
+    A->>T: search_ai_act · lookup_article · check_risk_tier · compute_fine
+    T-->>A: tool result
+  end
+  end
+  A-->>API: answer + trajectory
+  API-->>U: response
+  A->>LF: trace (run_agent, tool.*)
 ```
 
 ## Component decisions
@@ -60,6 +70,18 @@ Final answer + full trajectory  ──►  Langfuse trace
 
 See `docs/EVAL_STRATEGY.md` for the full pyramid. Summary:
 
+```mermaid
+flowchart BT
+  Unit["1. Unit tests (tests/)\ntools · gate math · poisoned RAG"]
+  Ref["2. Reference metrics (RAGAS)\nfaithfulness · precision · recall"]
+  Rubric["3. Custom rubrics (DeepEval G-Eval)\ncitation · refusal · trajectory"]
+  Prop["4. Property-based\nmetamorphic · bias"]
+  Adv["5. Adversarial\nOWASP LLM Top 10"]
+  Gate["6. Gate (eval/gate.py)\nfloors + regression vs baseline"]
+
+  Unit --> Ref --> Rubric --> Prop --> Adv --> Gate
+```
+
 1. **Unit tests** (`tests/`) — tools, gate math, poisoned retrieval. No API keys.
 2. **Reference metrics** (RAGAS) — faithfulness, context precision/recall, answer relevance.
 3. **Custom rubrics** (DeepEval G-Eval) — citation, refusal, trajectory quality.
@@ -69,12 +91,22 @@ See `docs/EVAL_STRATEGY.md` for the full pyramid. Summary:
 
 ## CI pipeline
 
-```
-PR:  unit (5s) → eval-full + gate (API keys)
-main: unit → eval-full → gate → promote baseline
+```mermaid
+flowchart TD
+  subgraph EveryPush["Every PR / push to main"]
+    U[unit · 5s · $0]
+    EF[eval-fast · adversarial + budget + gate]
+    U --> EF
+  end
+
+  subgraph Manual["Manual: GitHub Actions → Eval Gate"]
+    Full[eval-full · full pytest + gate]
+    Promote[promote baseline · checkbox]
+    Full --> Promote
+  end
 ```
 
-Fast PR feedback on unit tests; full eval blocks merge on regression.
+Fast PR feedback on unit tests; `eval-fast` runs adversarial + budget when API secrets are set. Full eval (RAGAS, DeepEval, agent) is **workflow_dispatch only** — blocks regression only when you run it.
 
 ## Handling non-determinism
 

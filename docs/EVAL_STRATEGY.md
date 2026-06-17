@@ -4,22 +4,14 @@ How we test AI systems in this lab — and *why*. Use this doc to study for AI Q
 
 ## The test pyramid
 
-```
-                    ┌─────────────────┐
-                    │ Trajectory judge │  slow, LLM-as-judge
-                    │ RAGAS full run   │
-                    └────────┬────────┘
-               ┌─────────────┴─────────────┐
-               │ DeepEval G-Eval rubrics    │  medium cost
-               │ Metamorphic + bias         │
-               └─────────────┬─────────────┘
-          ┌──────────────────┴──────────────────┐
-          │ Adversarial (RAG + agent)            │  cheap, high signal
-          │ Budget (latency + cost)              │
-          └──────────────────┬──────────────────┘
-     ┌──────────────────────┴──────────────────────┐
-     │ Unit tests (tools, gate math, poisoned RAG) │  free, instant
-     └─────────────────────────────────────────────┘
+```mermaid
+flowchart BT
+  Top["Trajectory judge · RAGAS full run\nslow · LLM-as-judge"]
+  Mid["DeepEval G-Eval rubrics\nMetamorphic + bias\nmedium cost"]
+  Fast["Adversarial (RAG + agent)\nBudget (latency + cost)\ncheap · high signal"]
+  Base["Unit tests (tools, gate math, poisoned RAG)\nfree · instant"]
+
+  Base --> Fast --> Mid --> Top
 ```
 
 **Study rule:** run `make unit` on every change. Run `make eval-full` before merging.
@@ -74,6 +66,17 @@ How we test AI systems in this lab — and *why*. Use this doc to study for AI Q
 
 ## The gate: floors + regression
 
+```mermaid
+flowchart LR
+  Tests[pytest eval suites] --> RC[ReportCollector]
+  RC --> Current[current.json]
+  Current --> Gate[eval/gate.py]
+  Baseline[baseline.json] --> Gate
+  Floors[thresholds.yaml] --> Gate
+  Gate -->|pass| OK[merge OK]
+  Gate -->|fail| Block[regression blocked]
+```
+
 Two complementary mechanisms in `eval/gate.py`:
 
 1. **Absolute floors** (`eval/thresholds.yaml`) — catch catastrophes even on first run
@@ -92,6 +95,18 @@ This mirrors production: "never below 0.80" AND "don't drop more than 5pp vs las
 | Trajectory caching | `EVAL_USE_CACHE=1` in CI — same agent run, many assertions |
 
 ## Observability closes the loop
+
+```mermaid
+flowchart LR
+  Eval[Eval failure] --> Trace[Langfuse trace]
+  Trace --> Ret[Retrieved chunks]
+  Trace --> Prompt[Full prompt]
+  Trace --> Perf[Tokens + latency]
+  Ret --> RCA[Root cause]
+  Prompt --> RCA
+  Perf --> RCA
+  RCA --> Fix[Fix retrieval · prompt · model]
+```
 
 When faithfulness drops, you need traces — not just a red CI badge.
 

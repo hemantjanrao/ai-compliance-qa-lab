@@ -16,6 +16,14 @@ By Day 7 you can:
 - Explain your QA strategy in a 5-minute interview answer
 - Run the eval pyramid: `make unit` → `make eval-fast` → `make eval-full` → `make gate`
 
+```mermaid
+flowchart LR
+  Unit[make unit\n$0 · no keys] --> Fast[make eval-fast\ncheap]
+  Fast --> Full[make eval-full\nfull suite]
+  Full --> Gate[make gate\nfloors + regression]
+  Gate --> Promote[make promote-baseline\noptional]
+```
+
 ---
 
 ## Daily structure (every day)
@@ -136,6 +144,21 @@ By Day 7 you can:
 ## Day 6 — CI gate + eval tiers
 
 **Theme:** Floors + baseline regression; cost-aware CI.
+
+```mermaid
+flowchart TD
+  subgraph PR["Every PR / push"]
+    U[unit]
+    EF[eval-fast]
+    U --> EF
+  end
+  subgraph Manual["Manual full run"]
+    Full[eval-full]
+    Gate[gate]
+    Promote[promote baseline]
+    Full --> Gate --> Promote
+  end
+```
 
 ### Learn
 - [`eval/gate.py`](../eval/gate.py), [`eval/conftest.py`](../eval/conftest.py) (caching)

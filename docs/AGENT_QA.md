@@ -17,6 +17,24 @@ A correct final answer reached via a bad trajectory is still a regression signal
 
 A ReAct-style loop with 4 tools:
 
+```mermaid
+flowchart TD
+  Q[User question] --> Loop[ReAct loop · max 8 steps]
+  Loop --> LLM[Anthropic tool use]
+  LLM -->|tool call| Tools
+  LLM -->|final answer| Out[Answer + trajectory]
+  subgraph Tools["Available tools"]
+    S[search_ai_act]
+    L[lookup_article]
+    R[check_risk_tier]
+    F[compute_fine]
+  end
+  S --> Loop
+  L --> Loop
+  R --> Loop
+  F --> Loop
+```
+
 | Tool | Purpose | Failure mode tested |
 |---|---|---|
 | `search_ai_act` | RAG retrieval | Over-use, irrelevant queries |
@@ -25,6 +43,21 @@ A ReAct-style loop with 4 tools:
 | `compute_fine` | Calculate penalty | Wrong violation type, missing required arg |
 
 ## Test layers
+
+```mermaid
+flowchart TB
+  Golden[golden_trajectories.jsonl] --> L1
+  Golden --> L2
+  Golden --> L3
+  Probes[adversarial probes] --> L4
+
+  subgraph Layers["Four orthogonal eval layers"]
+    L1["1. Tool selection\ntest_tool_selection.py"]
+    L2["2. Trajectory properties\nloops · step budget · content"]
+    L3["3. LLM-as-judge quality\ntest_trajectory_judge.py"]
+    L4["4. Adversarial\ninjection · hallucinated tools"]
+  end
+```
 
 ### 1. Tool selection accuracy (`test_tool_selection.py`)
 

@@ -46,6 +46,22 @@ Verify environment:
 
 ## Block 1 — Learn (45 min)
 
+### 1.0 RAGAS data flow in this repo
+
+```mermaid
+flowchart LR
+  Golden[golden.jsonl] --> Harness[test_ragas.py]
+  Harness --> RAG[RAG pipeline]
+  RAG --> Answer[generated answer]
+  RAG --> Context[retrieved chunks]
+  Golden --> Judge[RAGAS judge]
+  Answer --> Judge
+  Context --> Judge
+  Judge --> Metrics[4 RAGAS metrics]
+  Metrics --> Report[current.json]
+  Report --> Gate[eval/gate.py]
+```
+
 ### 1.1 The four RAGAS metrics (20 min)
 
 RAGAS measures RAG quality **against a golden reference**. In this repo, the harness is `eval/test_ragas.py`.

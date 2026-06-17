@@ -4,6 +4,65 @@ A hands-on laboratory for becoming a strong **AI QA engineer**: production-style
 
 > **Study-first design:** every layer maps to a skill interviewers test in 2026. See [`docs/STUDY_GUIDE.md`](docs/STUDY_GUIDE.md) for exercises.
 
+## System overview
+
+```mermaid
+flowchart TB
+  subgraph User[" "]
+    Q[User question]
+  end
+
+  subgraph App["Application (app/)"]
+    UI[Streamlit / FastAPI]
+    RAG[RAG core]
+    Agent[ReAct agent + 4 tools]
+    Chroma[(ChromaDB)]
+  end
+
+  subgraph Providers["LLM providers"]
+    LLM[Anthropic · OpenAI]
+  end
+
+  subgraph Obs["Observability"]
+    LF[Langfuse traces]
+  end
+
+  subgraph QA["Eval & gate (eval/)"]
+    Tests[pytest suites]
+    Current[current.json]
+    Gate[gate.py]
+    Baseline[baseline.json]
+  end
+
+  Q --> UI
+  UI --> RAG
+  UI --> Agent
+  RAG --> Chroma
+  Agent --> RAG
+  RAG --> LLM
+  Agent --> LLM
+  RAG --> LF
+  Agent --> LF
+  Tests --> Current
+  Current --> Gate
+  Baseline --> Gate
+  Thresholds[thresholds.yaml] --> Gate
+```
+
+## Eval pyramid
+
+```mermaid
+flowchart BT
+  Unit["Unit tests (tests/)\nfree · ~5s · no API keys"]
+  Fast["Adversarial + budget (eval-fast)\ncheap · high signal"]
+  Mid["DeepEval · metamorphic · bias\nmedium cost"]
+  Slow["RAGAS · trajectory judge (eval-full)\nslow · LLM-as-judge"]
+
+  Unit --> Fast --> Mid --> Slow
+```
+
+Run `make unit` on every change; run `make eval-full` before merging eval-related work. Details: [`docs/EVAL_STRATEGY.md`](docs/EVAL_STRATEGY.md).
+
 ## What you'll learn here
 
 | Skill | Where in repo |
@@ -54,6 +113,17 @@ make promote-baseline   # after a good main run — updates baseline.json
 
 ## Eval gate logic
 
+```mermaid
+flowchart LR
+  Pytest[pytest eval suites] --> RC[ReportCollector]
+  RC --> Current[current.json]
+  Current --> Gate[eval/gate.py]
+  Baseline[baseline.json] --> Gate
+  Floors[thresholds.yaml] --> Gate
+  Gate -->|pass| OK[merge OK]
+  Gate -->|fail| Block[regression blocked]
+```
+
 `eval/gate.py` compares `eval/reports/current.json` against `eval/reports/baseline.json`:
 
 - **Absolute floors** — from `eval/thresholds.yaml` (faithfulness ≥ 0.80, etc.)
@@ -61,7 +131,31 @@ make promote-baseline   # after a good main run — updates baseline.json
 - **Latency regression** — p95 increase > 30% fails
 - **Adversarial** — if baseline had passing adversarial suites, current must too
 
-On `main`, CI runs the full suite and **promotes** the baseline automatically.
+Promote baseline only after a green full run: `make promote-baseline` (or CI workflow checkbox). See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+
+## CI pipeline
+
+```mermaid
+flowchart TD
+  subgraph PR["Every PR / push to main"]
+    U[unit · ~5s · $0]
+    EF["eval-fast · adversarial + budget\nskips API tests without secrets"]
+    U --> EF
+  end
+
+  subgraph Manual["Manual: Actions → Eval Gate → Run workflow"]
+    Full[eval-full · RAGAS + DeepEval + agent]
+    Gate[gate]
+    Promote[promote baseline · optional]
+    Full --> Gate --> Promote
+  end
+```
+
+| Job | Trigger | Cost |
+|-----|---------|------|
+| `unit` | PR + push | $0 |
+| `eval-fast` | PR + push (skips API tests without secrets) | ~$0–0.30 |
+| `eval-full` | workflow_dispatch only | ~$1.50–2.50 |
 
 ## Repository layout
 
@@ -73,7 +167,7 @@ promptfoo/       Config-driven prompt regression
 corpus/          EU AI Act PDF (not committed — download manually)
 scripts/         Ingestion
 docs/            Architecture, eval strategy, study guide
-.github/         CI: unit → eval-fast (PR) → eval-full (main)
+.github/         CI: unit → eval-fast (PR); eval-full (manual)
 ```
 
 ## Study path
