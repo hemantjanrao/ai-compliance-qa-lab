@@ -16,6 +16,7 @@ from deepeval.test_case import LLMTestCase, LLMTestCaseParams
 
 from app.agent import run_agent
 from eval.helpers import threshold
+from eval.reporting import ReportCollector
 
 
 def trajectory_to_text(run) -> str:
@@ -55,15 +56,19 @@ TRAJECTORY_TEST_QUESTIONS = [
 
 @pytest.mark.eval
 @pytest.mark.slow
-@pytest.mark.parametrize("question", TRAJECTORY_TEST_QUESTIONS)
-def test_trajectory_quality(question: str):
-    run = run_agent(question)
-    actual = f"TRAJECTORY:\n{trajectory_to_text(run)}\n\nFINAL ANSWER:\n{run.final_answer}"
-    tc = LLMTestCase(input=question, actual_output=actual)
+def test_trajectory_quality():
     traj_threshold = threshold("deepeval.trajectory_quality", 0.70)
-    trajectory_metric.measure(tc)
-    assert trajectory_metric.score >= traj_threshold, (
-        f"Trajectory score {trajectory_metric.score} < {traj_threshold}\n"
-        f"Reason: {trajectory_metric.reason}\n"
-        f"Trajectory:\n{trajectory_to_text(run)}"
-    )
+    scores: list[float] = []
+    for question in TRAJECTORY_TEST_QUESTIONS:
+        run = run_agent(question)
+        actual = f"TRAJECTORY:\n{trajectory_to_text(run)}\n\nFINAL ANSWER:\n{run.final_answer}"
+        tc = LLMTestCase(input=question, actual_output=actual)
+        trajectory_metric.measure(tc)
+        scores.append(trajectory_metric.score)
+        assert trajectory_metric.score >= traj_threshold, (
+            f"Trajectory score {trajectory_metric.score} < {traj_threshold}\n"
+            f"Reason: {trajectory_metric.reason}\n"
+            f"Trajectory:\n{trajectory_to_text(run)}"
+        )
+    if scores:
+        ReportCollector.set("deepeval.trajectory_quality", sum(scores) / len(scores))

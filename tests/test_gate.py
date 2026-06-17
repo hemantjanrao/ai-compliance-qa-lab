@@ -61,3 +61,21 @@ def test_gate_fails_on_latency_regression():
     result = compare_reports(baseline, current, max_latency_increase=0.30)
     assert not result.passed
     assert any("latency" in f.check for f in result.failures)
+
+
+def test_gate_fails_on_deepeval_floor_breach():
+    baseline = {
+        "ragas": {"anthropic": {}, "openai": {}},
+        "deepeval": {"anthropic": {"citation_correctness": 0.85}},
+        "latency_p95_ms": {},
+        "adversarial": {},
+    }
+    current = {
+        "ragas": {"anthropic": {}, "openai": {}},
+        "deepeval": {"anthropic": {"citation_correctness": 0.65}},
+        "latency_p95_ms": {},
+        "adversarial": {},
+    }
+    result = compare_reports(baseline, current)
+    assert not result.passed
+    assert any("deepeval" in f.check for f in result.failures)

@@ -66,6 +66,12 @@ def pytest_configure(config):
     from dotenv import load_dotenv
 
     load_dotenv()  # ensure .env loaded before any eval test imports providers
+    # DeepEval expects `.deepeval` to be a key file, not a directory.
+    deepeval_key = Path(".deepeval")
+    if deepeval_key.is_dir():
+        import shutil
+
+        shutil.rmtree(deepeval_key)
     ReportCollector.reset()
 
 
@@ -73,7 +79,7 @@ def pytest_sessionfinish(session, exitstatus):
     if session.config.getoption("--collect-only", default=False):
         return
     data = ReportCollector.data()
-    has_metrics = bool(data.get("ragas") or data.get("latency_p95_ms"))
+    has_metrics = bool(data.get("ragas") or data.get("latency_p95_ms") or data.get("deepeval"))
     has_adversarial = (data.get("adversarial") or {}).get("rag_passed") is not None
     if has_metrics or has_adversarial:
         ReportCollector.save()

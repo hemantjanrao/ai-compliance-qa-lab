@@ -1,4 +1,4 @@
-# Calibrated eval thresholds — tune after running `make eval-calibrate` on main.
+# Calibrated eval thresholds — tune after `make eval-full`, then `make promote-baseline`.
 # Study note: static floors catch catastrophic regressions; baseline comparison
 # in eval/gate.py catches smaller drift vs the last known-good run.
 

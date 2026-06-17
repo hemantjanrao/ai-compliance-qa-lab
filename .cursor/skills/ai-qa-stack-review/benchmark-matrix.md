@@ -75,7 +75,7 @@ Map coverage to OWASP table in `docs/EVAL_STRATEGY.md`.
 | Absolute quality floors | `eval/thresholds.yaml` | per-metric floors with comments |
 | Regression vs baseline | `eval/gate.py`, `eval/reports/baseline.json` | 5pp drop detection |
 | Latency / cost regression | `eval/test_budget.py`, gate latency checks | p95 tracked |
-| Tiered CI (fast vs full) | `Makefile`, `eval-gate.yml` | PR fast path + main full eval |
+| Tiered CI (fast vs full) | `Makefile`, `eval-gate.yml` | PR: unit + eval-fast; full eval via workflow_dispatch |
 | Promotion workflow | `make promote-baseline` | deliberate baseline updates |
 | Unit tests for gate math | `tests/test_gate.py` | no API keys for gate logic |
 

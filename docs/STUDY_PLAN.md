@@ -11,7 +11,7 @@ Hours/day target: **2.5 weekday, 4 weekend**. Total ~85 hours.
 > **Start here:** [`docs/STUDY_GUIDE.md`](STUDY_GUIDE.md) — exercises for every module.
 
 - [ ] **Tue Jun 16** — `make setup && make ingest && make unit`. Streamlit RAG tab works. Read `docs/EVAL_STRATEGY.md`.
-- [ ] **Wed Jun 17** — Theory: tokens, temperature, embeddings, attention intuition. Write `docs/foundations.md` notes.
+- [ ] **Wed Jun 17** — Theory: tokens, temperature, embeddings, attention intuition. Write notes in your own study journal (or `docs/DAY_02_RAGAS.md` workbook).
 - [ ] **Thu Jun 18** — RAGAS deep dive. Get `test_ragas.py` green on both providers. Tune thresholds.
 - [ ] **Fri Jun 19** — DeepEval G-Eval. Add 2 more custom metrics beyond Citation + Refusal (e.g., Conciseness, Article-Number-Hallucination).
 - [ ] **Sat Jun 20** — Expand golden dataset to 30 Q&A. Add `negative` cases (out-of-scope, ambiguous). Version with git tags.

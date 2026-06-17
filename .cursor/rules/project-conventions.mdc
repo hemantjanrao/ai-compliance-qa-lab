@@ -31,6 +31,7 @@ alwaysApply: true
 
 ## CI awareness
 
-- PR: `unit` + `eval-fast` + full eval gate (blocks merge on regression)
-- Main push: `eval-full` + auto-promote baseline on success
+- PR / push: `unit` + `eval-fast` (API tests skip without secrets)
+- Full eval: **workflow_dispatch only** — Actions → Eval Gate → Run workflow
+- Baseline promote: `make promote-baseline` locally, or CI checkbox after green `eval-full`
 - See `.github/workflows/eval-gate.yml`

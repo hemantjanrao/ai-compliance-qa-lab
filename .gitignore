@@ -8,6 +8,8 @@ venv/
 .mypy_cache/
 chroma_db/
 .eval_cache/
+.deepeval
+.deepeval/
 eval/reports/current.json
 eval/reports/gate-summary.md
 *.egg-info/

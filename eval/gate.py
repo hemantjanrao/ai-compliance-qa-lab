@@ -23,6 +23,8 @@ from typing import Any
 from eval.reporting import BASELINE_REPORT, CURRENT_REPORT, load_thresholds
 
 RAGAS_METRICS = ("faithfulness", "answer_relevancy", "context_precision", "context_recall")
+DEEPEVAL_PROVIDER_METRICS = ("citation_correctness", "refusal_correctness")
+DEEPEVAL_AGENT_METRICS = ("trajectory_quality",)
 PROVIDERS = ("anthropic", "openai")
 
 
@@ -72,6 +74,7 @@ def compare_reports(
 
     result = GateResult(passed=True)
     ragas_floor = load_thresholds().get("ragas", {})
+    deepeval_floor = load_thresholds().get("deepeval", {})
 
     # --- RAGAS: absolute floors ---
     for provider in PROVIDERS:
@@ -108,6 +111,77 @@ def compare_reports(
                         message=f"{metric} dropped {drop:.3f} ({b:.3f} → {c:.3f}), limit {max_metric_drop:.3f}",
                     )
                 )
+
+    # --- DeepEval: absolute floors (per provider) ---
+    for provider in PROVIDERS:
+        for metric in DEEPEVAL_PROVIDER_METRICS:
+            value = (current.get("deepeval") or {}).get(provider, {}).get(metric)
+            floor = deepeval_floor.get(metric)
+            if value is None or floor is None:
+                result.warnings.append(f"Skipping floor check: deepeval.{provider}.{metric} (missing data)")
+                continue
+            if value < floor:
+                result.passed = False
+                result.failures.append(
+                    GateFailure(
+                        check=f"floor.deepeval.{provider}.{metric}",
+                        message=f"{metric}={value:.3f} below floor {floor:.3f}",
+                    )
+                )
+
+    # --- DeepEval: absolute floors (agent metrics) ---
+    for metric in DEEPEVAL_AGENT_METRICS:
+        value = (current.get("deepeval") or {}).get(metric)
+        floor = deepeval_floor.get(metric)
+        if value is None or floor is None:
+            result.warnings.append(f"Skipping floor check: deepeval.{metric} (missing data)")
+            continue
+        if value < floor:
+            result.passed = False
+            result.failures.append(
+                GateFailure(
+                    check=f"floor.deepeval.{metric}",
+                    message=f"{metric}={value:.3f} below floor {floor:.3f}",
+                )
+            )
+
+    # --- DeepEval: regression vs baseline (per provider) ---
+    for provider in PROVIDERS:
+        base_p = (baseline.get("deepeval") or {}).get(provider, {})
+        cur_p = (current.get("deepeval") or {}).get(provider, {})
+        for metric in DEEPEVAL_PROVIDER_METRICS:
+            b, c = base_p.get(metric), cur_p.get(metric)
+            if b is None or c is None:
+                result.warnings.append(
+                    f"Skipping regression: deepeval.{provider}.{metric} (missing baseline or current)"
+                )
+                continue
+            drop = _metric_drop(b, c)
+            if drop > max_metric_drop:
+                result.passed = False
+                result.failures.append(
+                    GateFailure(
+                        check=f"regression.deepeval.{provider}.{metric}",
+                        message=f"{metric} dropped {drop:.3f} ({b:.3f} → {c:.3f}), limit {max_metric_drop:.3f}",
+                    )
+                )
+
+    # --- DeepEval: regression vs baseline (agent metrics) ---
+    for metric in DEEPEVAL_AGENT_METRICS:
+        b = (baseline.get("deepeval") or {}).get(metric)
+        c = (current.get("deepeval") or {}).get(metric)
+        if b is None or c is None:
+            result.warnings.append(f"Skipping regression: deepeval.{metric} (missing baseline or current)")
+            continue
+        drop = _metric_drop(b, c)
+        if drop > max_metric_drop:
+            result.passed = False
+            result.failures.append(
+                GateFailure(
+                    check=f"regression.deepeval.{metric}",
+                    message=f"{metric} dropped {drop:.3f} ({b:.3f} → {c:.3f}), limit {max_metric_drop:.3f}",
+                )
+            )
 
     # --- Latency p95 regression ---
     base_lat = baseline.get("latency_p95_ms") or {}
@@ -165,6 +239,20 @@ def format_gate_summary(result: GateResult, baseline: dict, current: dict) -> st
             if base_parts:
                 lines.append(f"  baseline: {', '.join(base_parts)}")
     lines.append("")
+
+    deepeval = current.get("deepeval") or {}
+    if deepeval:
+        lines.append("## DeepEval scores")
+        for provider in PROVIDERS:
+            cur = deepeval.get(provider, {})
+            if cur:
+                parts = [f"{m}={cur.get(m, '?'):.3f}" for m in DEEPEVAL_PROVIDER_METRICS if cur.get(m) is not None]
+                if parts:
+                    lines.append(f"- **{provider}** {', '.join(parts)}")
+        for metric in DEEPEVAL_AGENT_METRICS:
+            if deepeval.get(metric) is not None:
+                lines.append(f"- **agent** {metric}={deepeval[metric]:.3f}")
+        lines.append("")
 
     if result.warnings:
         lines.append("## Warnings")

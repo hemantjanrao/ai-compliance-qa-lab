@@ -13,6 +13,7 @@ from deepeval.test_case import LLMTestCase, LLMTestCaseParams
 
 from app.rag import answer
 from eval.helpers import load_golden_rag, threshold
+from eval.reporting import ReportCollector
 
 
 citation_metric = GEval(
@@ -46,6 +47,7 @@ refusal_metric = GEval(
 def test_citation_correctness(provider: str):
     cases = [g for g in load_golden_rag() if any("article" in t for t in g.get("tags", []))]
     cite_threshold = threshold("deepeval.citation_correctness", 0.70)
+    scores: list[float] = []
     for ex in cases:
         r = answer(ex["question"], provider=provider)
         tc = LLMTestCase(
@@ -54,10 +56,13 @@ def test_citation_correctness(provider: str):
             expected_output=ex["expected_answer"],
         )
         citation_metric.measure(tc)
+        scores.append(citation_metric.score)
         assert citation_metric.score >= cite_threshold, (
             f"[{provider}] Citation failed for: {ex['question']}\n"
             f"Score: {citation_metric.score}, Reason: {citation_metric.reason}"
         )
+    if scores:
+        ReportCollector.set(f"deepeval.{provider}.citation_correctness", sum(scores) / len(scores))
 
 
 @pytest.mark.eval
@@ -65,6 +70,7 @@ def test_citation_correctness(provider: str):
 def test_refusal_correctness(provider: str):
     cases = [g for g in load_golden_rag() if g.get("must_refuse") or "negative-test" in g.get("tags", [])]
     refuse_threshold = threshold("deepeval.refusal_correctness", 0.80)
+    scores: list[float] = []
     for ex in cases:
         r = answer(ex["question"], provider=provider)
         tc = LLMTestCase(
@@ -73,7 +79,10 @@ def test_refusal_correctness(provider: str):
             expected_output=ex["expected_answer"],
         )
         refusal_metric.measure(tc)
+        scores.append(refusal_metric.score)
         assert refusal_metric.score >= refuse_threshold, (
             f"[{provider}] Refusal failed: model hallucinated when it should have refused.\n"
             f"Q: {ex['question']}\nA: {r.answer}\nReason: {refusal_metric.reason}"
         )
+    if scores:
+        ReportCollector.set(f"deepeval.{provider}.refusal_correctness", sum(scores) / len(scores))

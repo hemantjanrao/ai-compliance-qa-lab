@@ -15,9 +15,10 @@ alwaysApply: false
 ## Gate checks (eval/gate.py)
 
 1. **Absolute floors** — RAGAS metrics per provider (anthropic, openai)
-2. **Regression** — metric drop > 5pp vs baseline (`gate.max_metric_drop`)
-3. **Latency** — p95 increase > 30% vs baseline (`gate.max_latency_increase`)
-4. **Adversarial** — if baseline had `rag_passed` / `agent_passed`, current must too
+2. **DeepEval floors** — citation, refusal (per provider), trajectory_quality (agent)
+3. **Regression** — metric drop > 5pp vs baseline (`gate.max_metric_drop`)
+4. **Latency** — p95 increase > 30% vs baseline (`gate.max_latency_increase`)
+5. **Adversarial** — if baseline had `rag_passed` / `agent_passed`, current must too
 
 ## Pytest markers
 
@@ -36,5 +37,5 @@ alwaysApply: false
 ## Baseline promotion
 
 - Local: `make promote-baseline` only after a green `make eval-full`
-- CI: auto-promotes on main after successful `eval-full`
+- CI: optional `promote_baseline` checkbox on workflow_dispatch after green `eval-full`
 - Never promote to hide a regression — fix the root cause first

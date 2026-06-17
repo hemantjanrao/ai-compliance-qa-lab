@@ -122,7 +122,7 @@ These are **hypotheses** until Step 1 confirms:
 - Agent path testing (tool selection, trajectory judge, loop detection)
 - OWASP LLM Top 10 mapped to tests (see EVAL_STRATEGY table)
 - Observability hooks (Langfuse), prompt regression (promptfoo), optional garak + Playwright E2E
-- CI: unit on every PR, eval gate on PR, baseline promote on main
+- CI: unit + eval-fast on every PR/push; full eval + optional baseline promote via workflow_dispatch
 
 ## Known limitations (always mention if still true)
 
