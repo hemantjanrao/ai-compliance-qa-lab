@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "commit": "initial",
-  "timestamp": "2026-06-16T00:00:00+00:00",
+  "commit": "e569cfd",
+  "timestamp": "2026-06-17T16:45:00+00:00",
   "ragas": {
     "anthropic": {
       "faithfulness": 0.85,
@@ -29,7 +29,17 @@
     "agent_passed": true
   },
   "agent": {
-    "cases_run": 8
+    "cases_run": 12
   },
-  "deepeval": {}
+  "deepeval": {
+    "anthropic": {
+      "citation_correctness": 0.75,
+      "refusal_correctness": 0.85
+    },
+    "openai": {
+      "citation_correctness": 0.75,
+      "refusal_correctness": 0.85
+    },
+    "trajectory_quality": 0.75
+  }
 }

@@ -91,14 +91,15 @@ def agent_cache_dir() -> Path:
     return CACHE_DIR
 
 
-def _cache_key(question: str) -> str:
-    return hashlib.sha256(question.encode()).hexdigest()[:16]
+def _cache_key(question: str, case_id: str = "") -> str:
+    raw = f"{case_id}:{question}" if case_id else question
+    return hashlib.sha256(raw.encode()).hexdigest()[:16]
 
 
-def load_cached_agent_run(question: str, cache_dir: Path):
+def load_cached_agent_run(question: str, cache_dir: Path, *, case_id: str = ""):
     from app.agent.runner import AgentRun, TrajectoryStep
 
-    path = cache_dir / f"{_cache_key(question)}.json"
+    path = cache_dir / f"{_cache_key(question, case_id)}.json"
     if not USE_CACHE or not path.exists():
         return None
     data = json.loads(path.read_text())
@@ -113,10 +114,10 @@ def load_cached_agent_run(question: str, cache_dir: Path):
     )
 
 
-def save_cached_agent_run(run, cache_dir: Path) -> None:
+def save_cached_agent_run(run, cache_dir: Path, *, case_id: str = "") -> None:
     from dataclasses import asdict
 
-    path = cache_dir / f"{_cache_key(run.question)}.json"
+    path = cache_dir / f"{_cache_key(run.question, case_id)}.json"
     path.write_text(json.dumps(asdict(run), indent=2))
 
 
@@ -125,10 +126,11 @@ def agent_run_for_case(agent_cache_dir, request):
     """Parametrize with a golden case dict; returns cached AgentRun."""
     case = request.param
     question = case["question"]
-    run = load_cached_agent_run(question, agent_cache_dir)
+    case_id = case.get("id", "")
+    run = load_cached_agent_run(question, agent_cache_dir, case_id=case_id)
     if run is None:
         from app.agent import run_agent
 
         run = run_agent(question)
-        save_cached_agent_run(run, agent_cache_dir)
+        save_cached_agent_run(run, agent_cache_dir, case_id=case_id)
     return case, run

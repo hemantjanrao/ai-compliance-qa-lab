@@ -79,7 +79,7 @@ flowchart LR
 
 Two complementary mechanisms in `eval/gate.py`:
 
-1. **Absolute floors** (`eval/thresholds.yaml`) — catch catastrophes even on first run
+1. **Absolute floors** (`eval/thresholds.yaml`) — catch catastrophes even on first run (RAGAS + DeepEval)
 2. **Baseline regression** (`eval/reports/baseline.json`) — catch small drift vs last known-good
 
 This mirrors production: "never below 0.80" AND "don't drop more than 5pp vs last release."
