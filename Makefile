@@ -1,12 +1,19 @@
 .PHONY: setup ingest serve api unit eval eval-fast eval-full gate promote-baseline calibrate clean garak-redteam promptfoo-eval e2e-ui
 
+# Use .venv when present (local dev); fall back to PATH python (CI after pip install -e).
+ifneq ($(wildcard .venv/bin/python),)
+  PY := .venv/bin/python
+else
+  PY := python3
+endif
+
 setup:
 	test -d .venv || python3 -m venv .venv
 	. .venv/bin/activate && pip install -e ".[dev]"
 	cp -n .env.example .env 2>/dev/null || true
 
 ingest:
-	python scripts/ingest_corpus.py
+	$(PY) scripts/ingest_corpus.py
 
 serve:
 	streamlit run app/streamlit_ui.py
@@ -15,25 +22,25 @@ api:
 	uvicorn app.main:app --reload --port 8000
 
 unit:
-	. .venv/bin/activate && pytest tests/ -v
+	$(PY) -m pytest tests/ -v
 
 eval-fast:
-	. .venv/bin/activate && pytest tests/ eval/test_adversarial.py eval/agent/test_adversarial.py eval/test_budget.py -v -m "not slow" --tb=short
-	. .venv/bin/activate && python -m eval.gate --markdown eval/reports/gate-summary.md || true
+	$(PY) -m pytest tests/ eval/test_adversarial.py eval/agent/test_adversarial.py eval/test_budget.py -v -m "not slow" --tb=short
+	$(PY) -m eval.gate --markdown eval/reports/gate-summary.md || true
 
 eval:
-	. .venv/bin/activate && pytest tests/ eval/ -v -m "not slow" --tb=short
-	. .venv/bin/activate && python -m eval.gate --markdown eval/reports/gate-summary.md
+	$(PY) -m pytest tests/ eval/ -v -m "not slow" --tb=short
+	$(PY) -m eval.gate --markdown eval/reports/gate-summary.md
 
 eval-full:
-	. .venv/bin/activate && pytest tests/ eval/ -v --tb=short
-	. .venv/bin/activate && python -m eval.gate --markdown eval/reports/gate-summary.md
+	$(PY) -m pytest tests/ eval/ -v --tb=short
+	$(PY) -m eval.gate --markdown eval/reports/gate-summary.md
 
 gate:
-	. .venv/bin/activate && python -m eval.gate --markdown eval/reports/gate-summary.md
+	$(PY) -m eval.gate --markdown eval/reports/gate-summary.md
 
 promote-baseline:
-	. .venv/bin/activate && python -m eval.gate --promote
+	$(PY) -m eval.gate --promote
 
 calibrate:
 	@echo "Run eval-full on main, then: make promote-baseline"
@@ -46,7 +53,7 @@ promptfoo-eval:
 	npx --yes promptfoo@latest eval -c promptfoo/promptfooconfig.yaml
 
 e2e-ui:
-	. .venv/bin/activate && pytest tests/e2e/test_streamlit_ui.py -v -m slow
+	$(PY) -m pytest tests/e2e/test_streamlit_ui.py -v -m slow
 
 clean:
 	rm -rf .eval_cache .pytest_cache htmlcov .coverage

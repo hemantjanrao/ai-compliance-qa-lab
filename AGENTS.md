@@ -38,13 +38,13 @@ make promptfoo-eval # prompt v1 vs v2 regression
 | `promptfoo/` | Config-driven prompt regression |
 | `docs/` | Architecture, eval strategy, study guide, agent QA |
 | `docs/ALLIANZ_SUPPLEMENT.md` | LangSmith, ISTQB, A/B, garak, spec-driven QA (interview gaps) |
-| `.github/workflows/eval-gate.yml` | CI: unit → eval-fast (PR) → eval-full + promote (main) |
+| `.github/workflows/eval-gate.yml` | CI: unit (PR/push) → eval-fast (skips without keys) → eval-full manual only |
 
 ## Eval architecture (short)
 
 1. **Tests measure** → write `eval/reports/current.json` via `eval/reporting.py`
 2. **Gate compares** → `eval/gate.py` checks floors (`eval/thresholds.yaml`) + regression vs `eval/reports/baseline.json`
-3. **CI enforces** → PRs block on gate failure; main auto-promotes baseline after green `eval-full`
+3. **CI enforces** → PRs run `unit` only by default; API eval skipped unless secrets set; full eval via **Actions → Eval Gate → Run workflow**
 
 ## Safety
 

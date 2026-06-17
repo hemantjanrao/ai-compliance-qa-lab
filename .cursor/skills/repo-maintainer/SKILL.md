@@ -37,14 +37,15 @@ make gate                    # gate only (needs current.json from a prior eval r
 
 ### CI workflow (`.github/workflows/eval-gate.yml`)
 
-| Job | Trigger | What runs |
-|-----|---------|-----------|
-| `unit` | PR + main | `make unit` |
-| `eval-fast` | PR + main | adversarial + budget + gate (non-blocking `|| true` on gate) |
-| `eval-gate-pr` | PR | full `pytest eval/` + gate (blocks merge) |
-| `eval-full` | main push | full eval + gate + auto `--promote` |
+| Job | Trigger | What runs | API cost |
+|-----|---------|-----------|----------|
+| `unit` | PR + push | `make unit` | $0 |
+| `eval-fast` | PR + push | adversarial + budget; **skips if no API secrets** | ~$0–0.30 if secrets set |
+| `eval-full` | **workflow_dispatch only** | RAGAS, DeepEval, agent, gate | ~$1.50–2.50 |
 
-PR gate failures: download `gate-summary` artifact or reproduce with `make eval-full && make gate`.
+Full eval: GitHub → Actions → **Eval Gate** → Run workflow. Optional `promote_baseline` checkbox.
+
+PR gate failures on full eval: reproduce locally with `make eval-full && make gate`.
 
 ### Adding a golden test case
 

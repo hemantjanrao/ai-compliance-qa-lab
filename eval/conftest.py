@@ -18,6 +18,50 @@ CACHE_DIR = Path(".eval_cache/agent")
 USE_CACHE = os.getenv("EVAL_USE_CACHE", "1") != "0"
 
 
+def _eval_providers() -> list[str]:
+    raw = os.getenv("EVAL_PROVIDERS", "anthropic,openai")
+    return [p.strip() for p in raw.split(",") if p.strip()]
+
+
+def _provider_api_ready(provider: str) -> bool:
+    from app.env_check import anthropic_configured, openai_configured
+
+    if provider == "anthropic":
+        return anthropic_configured()
+    if provider == "openai":
+        return openai_configured()
+    return False
+
+
+def pytest_collection_modifyitems(config, items):
+    """Skip API eval tests when keys missing; honour EVAL_PROVIDERS (CI uses anthropic only)."""
+    if os.getenv("EVAL_SKIP_API") == "1":
+        skip = pytest.mark.skip(reason="EVAL_SKIP_API=1")
+        for item in items:
+            if "eval" in item.keywords or "adversarial" in item.keywords:
+                item.add_marker(skip)
+        return
+
+    allowed = _eval_providers()
+    from app.env_check import anthropic_configured, openai_configured
+
+    if not anthropic_configured() and not openai_configured():
+        skip = pytest.mark.skip(reason="no LLM API keys configured")
+        for item in items:
+            if "eval" in item.keywords or "adversarial" in item.keywords:
+                item.add_marker(skip)
+        return
+
+    for item in items:
+        if not (hasattr(item, "callspec") and item.callspec and "provider" in item.callspec.params):
+            continue
+        provider = item.callspec.params["provider"]
+        if provider not in allowed:
+            item.add_marker(pytest.mark.skip(reason=f"provider {provider} not in EVAL_PROVIDERS"))
+        elif not _provider_api_ready(provider):
+            item.add_marker(pytest.mark.skip(reason=f"{provider} API key not configured"))
+
+
 def pytest_configure(config):
     from dotenv import load_dotenv
 
