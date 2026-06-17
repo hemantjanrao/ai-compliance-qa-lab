@@ -3,7 +3,7 @@
 **Date:** Wed Jun 17, 2026  
 **Time budget:** ~3 hours (extend to 4 if running full RAGAS on both providers)  
 **Prerequisite:** Day 1 complete — corpus ingested, `make serve` works, you’ve read `EVAL_STRATEGY.md`  
-**Master plan:** [`ONBOARDING_7_DAYS.md`](ONBOARDING_7_DAYS.md)
+**Master plan:** `[ONBOARDING_7_DAYS.md](ONBOARDING_7_DAYS.md)`
 
 ---
 
@@ -31,12 +31,14 @@ make unit                   # must be green — ~5s, no API keys
 
 Verify environment:
 
-| Check | Command / file | Expected |
-|-------|----------------|----------|
-| Corpus ingested | `curl -s localhost:8000/health` (with `make api` running) OR check ingest ran | `corpus_chunks` > 0 |
-| Anthropic key | `.env` → `ANTHROPIC_API_KEY` | Set (needed for RAGAS judge + answers) |
-| Local embeddings | `.env` → `EMBEDDING_PROVIDER=local` (default) | No OpenAI needed for retrieval |
-| Golden file | `eval/datasets/golden.jsonl` | 20 lines today; you'll add 3 |
+
+| Check            | Command / file                                                                | Expected                               |
+| ---------------- | ----------------------------------------------------------------------------- | -------------------------------------- |
+| Corpus ingested  | `curl -s localhost:8000/health` (with `make api` running) OR check ingest ran | `corpus_chunks` > 0                    |
+| Anthropic key    | `.env` → `ANTHROPIC_API_KEY`                                                  | Set (needed for RAGAS judge + answers) |
+| Local embeddings | `.env` → `EMBEDDING_PROVIDER=local` (default)                                 | No OpenAI needed for retrieval         |
+| Golden file      | `eval/datasets/golden.jsonl`                                                  | 20 lines today; you'll add 3           |
+
 
 > **Cost note:** Today's RAGAS run uses Anthropic Haiku as the *judge* (`eval/ragas_config.py`) plus Haiku/mini for *answers*. One provider run ≈ $0.30–0.80. Start with `-k anthropic` only.
 
@@ -48,12 +50,14 @@ Verify environment:
 
 RAGAS measures RAG quality **against a golden reference**. In this repo, the harness is `eval/test_ragas.py`.
 
-| Metric | Question it asks | Low score usually means |
-|--------|------------------|-------------------------|
-| **faithfulness** | Is the answer grounded in retrieved context? | Model hallucinated or ignored context |
-| **answer_relevancy** | Does the answer address the question? | Rambling, off-topic, or partial answer |
-| **context_precision** | Are retrieved chunks relevant (not noisy)? | Too much irrelevant text in top-k |
-| **context_recall** | Did retrieval find the chunks needed for the reference? | Right answer not in corpus chunks retrieved |
+
+| Metric                | Question it asks                                        | Low score usually means                     |
+| --------------------- | ------------------------------------------------------- | ------------------------------------------- |
+| **faithfulness**      | Is the answer grounded in retrieved context?            | Model hallucinated or ignored context       |
+| **answer_relevancy**  | Does the answer address the question?                   | Rambling, off-topic, or partial answer      |
+| **context_precision** | Are retrieved chunks relevant (not noisy)?              | Too much irrelevant text in top-k           |
+| **context_recall**    | Did retrieval find the chunks needed for the reference? | Right answer not in corpus chunks retrieved |
+
 
 **Study diagram — where failure happens:**
 
@@ -72,10 +76,10 @@ Answer (compared to golden expected_answer)
 
 Read these files in order (25 min):
 
-1. [`eval/test_ragas.py`](../eval/test_ragas.py) — how metrics are computed and asserted
-2. [`eval/ragas_config.py`](../eval/ragas_config.py) — **judge LLM ≠ answer LLM** (common interview trap)
-3. [`eval/thresholds.yaml`](../eval/thresholds.yaml) — absolute floors for RAGAS
-4. [`eval/gate.py`](../eval/gate.py) lines 76–95 — floors vs baseline regression
+1. `[eval/test_ragas.py](../eval/test_ragas.py)` — how metrics are computed and asserted
+2. `[eval/ragas_config.py](../eval/ragas_config.py)` — **judge LLM ≠ answer LLM** (common interview trap)
+3. `[eval/thresholds.yaml](../eval/thresholds.yaml)` — absolute floors for RAGAS
+4. `[eval/gate.py](../eval/gate.py)` lines 76–95 — floors vs baseline regression
 
 **Key insight from `ragas_config.py`:**
 
@@ -85,7 +89,7 @@ Read these files in order (25 min):
 
 ### 1.2 Golden datasets as contracts (10 min)
 
-Open [`eval/datasets/golden.jsonl`](../eval/datasets/golden.jsonl). Each line is JSON:
+Open `[eval/datasets/golden.jsonl](../eval/datasets/golden.jsonl)`. Each line is JSON:
 
 ```json
 {
@@ -97,17 +101,19 @@ Open [`eval/datasets/golden.jsonl`](../eval/datasets/golden.jsonl). Each line is
 }
 ```
 
-| Field | QA purpose |
-|-------|------------|
-| `id` | Stable reference in CI logs and failures |
-| `question` | User input to the RAG pipeline |
-| `expected_answer` | Reference for RAGAS `ground_truth` |
-| `tags` | Filter tests (`pytest -k`), reporting buckets |
-| `must_refuse` | Documents intent: should the system refuse / say not found? |
+
+| Field             | QA purpose                                                  |
+| ----------------- | ----------------------------------------------------------- |
+| `id`              | Stable reference in CI logs and failures                    |
+| `question`        | User input to the RAG pipeline                              |
+| `expected_answer` | Reference for RAGAS `ground_truth`                          |
+| `tags`            | Filter tests (`pytest -k`), reporting buckets               |
+| `must_refuse`     | Documents intent: should the system refuse / say not found? |
+
 
 **Negative tests** (`must_refuse: true`) — e.g. `rag-012`, `rag-017`:
 
-- Question is out of scope or asks for non-existent articles.
+- *What is RAGAS and how do you use it in this repo?*Question is out of scope or asks for non-existent articles.
 - Expected answer: *"I cannot find that in the provided documents."* (or equivalent)
 - These catch **hallucination** when faithfulness + refusal behavior align.
 
@@ -115,10 +121,12 @@ Open [`eval/datasets/golden.jsonl`](../eval/datasets/golden.jsonl). Each line is
 
 Two different safety nets:
 
-| Mechanism | File | Purpose |
-|-----------|------|---------|
-| **Absolute floors** | `eval/thresholds.yaml` → `ragas.*` | Never ship below 0.80 faithfulness, even on first run |
-| **Baseline regression** | `eval/gate.py` + `eval/reports/baseline.json` | Don't drop >5pp vs last known-good release |
+
+| Mechanism               | File                                          | Purpose                                               |
+| ----------------------- | --------------------------------------------- | ----------------------------------------------------- |
+| **Absolute floors**     | `eval/thresholds.yaml` → `ragas.*`            | Never ship below 0.80 faithfulness, even on first run |
+| **Baseline regression** | `eval/gate.py` + `eval/reports/baseline.json` | Don't drop >5pp vs last known-good release            |
+
 
 **Interview one-liner:**
 
@@ -132,10 +140,12 @@ Two different safety nets:
 
 **Task:** For **every** row in `golden.jsonl` (rag-001 … rag-020), fill this mentally or in a notes file:
 
-| id | must_refuse | Primary article/topic | Why expected_answer is correct |
-|----|-------------|----------------------|--------------------------------|
-| rag-001 | false | Art. 3 definition | … |
-| … | … | … | … |
+
+| id      | must_refuse | Primary article/topic | Why expected_answer is correct |
+| ------- | ----------- | --------------------- | ------------------------------ |
+| rag-001 | false       | Art. 3 definition     | …                              |
+| …       | …           | …                     | …                              |
+
 
 **Worked example — rag-002:**
 
@@ -154,15 +164,17 @@ Two different safety nets:
 
 ### Exercise 2.2 — Add 3 new golden cases (30 min)
 
-Add lines to `eval/datasets/golden.jsonl` with ids **`rag-021`**, **`rag-022`**, **`rag-023`**.
+Add lines to `eval/datasets/golden.jsonl` with ids `**rag-021`**, `**rag-022**`, `**rag-023**`.
 
 **Requirements:**
 
-| id | Type | Suggestion |
-|----|------|------------|
-| rag-021 | **Factual** | e.g. "What is a high-risk AI system?" — answer from Chapter III |
-| rag-022 | **Negative / must_refuse** | e.g. "What does Article 999 say about quantum AI?" — must refuse |
-| rag-023 | **Edge / ambiguous** | e.g. "Is ChatGPT covered by the AI Act?" — nuanced limited/GPAI answer |
+
+| id      | Type                       | Suggestion                                                             |
+| ------- | -------------------------- | ---------------------------------------------------------------------- |
+| rag-021 | **Factual**                | e.g. "What is a high-risk AI system?" — answer from Chapter III        |
+| rag-022 | **Negative / must_refuse** | e.g. "What does Article 999 say about quantum AI?" — must refuse       |
+| rag-023 | **Edge / ambiguous**       | e.g. "Is ChatGPT covered by the AI Act?" — nuanced limited/GPAI answer |
+
 
 **Template — copy and edit:**
 
@@ -175,7 +187,7 @@ Add lines to `eval/datasets/golden.jsonl` with ids **`rag-021`**, **`rag-022`**,
 1. Open Streamlit RAG tab or run one query manually.
 2. Read retrieved chunks — does the corpus support your reference?
 3. Write the reference answer **as you want the product to behave**, not as the LLM happened to phrase it once.
-4. For `must_refuse: true`, align with `SYSTEM_PROMPT` rule 1 in [`app/rag.py`](../app/rag.py).
+4. For `must_refuse: true`, align with `SYSTEM_PROMPT` rule 1 in `[app/rag.py](../app/rag.py)`.
 
 **Validate JSONL** (no trailing commas, one object per line):
 
@@ -257,18 +269,16 @@ Expected: gate **fails** on absolute floor check.
 
 **Steps:**
 
-1. Open [`app/rag.py`](../app/rag.py) — back up `SYSTEM_PROMPT` in your notes.
+1. Open `[app/rag.py](../app/rag.py)` — back up `SYSTEM_PROMPT` in your notes.
 2. **Break A:** Comment out rule 1 (*"Answer ONLY from the provided context..."*).
 3. Run **one** golden question that should refuse:
-
-   ```bash
+  ```bash
    python -c "
    from app.rag import answer
    r = answer('What does the Act say about prompt engineering techniques for jailbreaking?', provider='anthropic')
    print(r.answer)
    "
-   ```
-
+  ```
 4. Predict: does it hallucinate? Which RAGAS metric would drop?
 5. **Break B (optional):** Set `k=1` in `answer()` default temporarily — ask rag-003 (high-risk requirements). Predict: **context_recall** drop.
 6. **Fix everything** — restore prompt and `k=5`.
@@ -299,15 +309,17 @@ Record on your phone. Re-record until under 60 seconds.
 
 ## Debugging guide (when RAGAS fails)
 
-| Symptom | Likely cause | What to check |
-|---------|--------------|---------------|
-| `faithfulness` low | Hallucination, weak grounding prompt | `SYSTEM_PROMPT`, poisoned chunks, model |
-| `context_recall` low | Retrieval missed relevant chunks | `k`, chunk_size, embedding model, ingest |
-| `context_precision` low | Noisy retrieval | too high `k`, irrelevant chunks in corpus |
-| `answer_relevancy` low | Answer off-topic or too terse | prompt, question ambiguity |
-| All NaN | Judge LLM failed | `ANTHROPIC_API_KEY`, `eval/ragas_config.py` |
-| One id always fails | Bad golden reference or out-of-date expected_answer | Re-read PDF; fix golden row |
-| `must_refuse` case scores low faithfulness | Model answered from parametric knowledge | Strengthen rule 1; add negative tests to G-Eval (Day 3) |
+
+| Symptom                                    | Likely cause                                        | What to check                                           |
+| ------------------------------------------ | --------------------------------------------------- | ------------------------------------------------------- |
+| `faithfulness` low                         | Hallucination, weak grounding prompt                | `SYSTEM_PROMPT`, poisoned chunks, model                 |
+| `context_recall` low                       | Retrieval missed relevant chunks                    | `k`, chunk_size, embedding model, ingest                |
+| `context_precision` low                    | Noisy retrieval                                     | too high `k`, irrelevant chunks in corpus               |
+| `answer_relevancy` low                     | Answer off-topic or too terse                       | prompt, question ambiguity                              |
+| All NaN                                    | Judge LLM failed                                    | `ANTHROPIC_API_KEY`, `eval/ragas_config.py`             |
+| One id always fails                        | Bad golden reference or out-of-date expected_answer | Re-read PDF; fix golden row                             |
+| `must_refuse` case scores low faithfulness | Model answered from parametric knowledge            | Strengthen rule 1; add negative tests to G-Eval (Day 3) |
+
 
 **Inspect one failure manually:**
 
@@ -389,6 +401,6 @@ python -m json.tool eval/reports/current.json
 
 ## Next session
 
-**Day 3 — G-Eval:** [`ONBOARDING_7_DAYS.md`](ONBOARDING_7_DAYS.md) · [`STUDY_GUIDE.md`](STUDY_GUIDE.md) Module 2
+**Day 3 — G-Eval:** `[ONBOARDING_7_DAYS.md](ONBOARDING_7_DAYS.md)` · `[STUDY_GUIDE.md](STUDY_GUIDE.md)` Module 2
 
 Say in Cursor: *"Use ai-qa-tutor skill — quiz me on Day 2 RAGAS"* or *"Help me write rag-021 expected_answer"*.
