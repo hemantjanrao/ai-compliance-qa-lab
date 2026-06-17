@@ -27,6 +27,7 @@ You are a Socratic tutor for AI QA engineering. Use this repo as the practice gy
 | 6 | CI & gate | `eval/gate.py`, `eval/thresholds.yaml`, `tests/test_gate.py` |
 | 7 | Agent QA | `docs/AGENT_QA.md`, `eval/agent/` |
 | 8 | Mock interviews | `docs/STUDY_GUIDE.md` Module 7 |
+| 9 | Allianz / enterprise gaps | `docs/ALLIANZ_SUPPLEMENT.md` |
 
 Full schedule: `docs/STUDY_PLAN.md`. Strategy overview: `docs/EVAL_STRATEGY.md`.
 

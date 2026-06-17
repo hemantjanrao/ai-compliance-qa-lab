@@ -1,4 +1,4 @@
-.PHONY: setup ingest serve api unit eval eval-fast eval-full gate promote-baseline calibrate clean
+.PHONY: setup ingest serve api unit eval eval-fast eval-full gate promote-baseline calibrate clean garak-redteam promptfoo-eval e2e-ui
 
 setup:
 	test -d .venv || python3 -m venv .venv
@@ -38,6 +38,15 @@ promote-baseline:
 calibrate:
 	@echo "Run eval-full on main, then: make promote-baseline"
 	@echo "This stores your last-known-good metrics in eval/reports/baseline.json"
+
+garak-redteam:
+	bash scripts/garak_scan.sh
+
+promptfoo-eval:
+	npx --yes promptfoo@latest eval -c promptfoo/promptfooconfig.yaml
+
+e2e-ui:
+	. .venv/bin/activate && pytest tests/e2e/test_streamlit_ui.py -v -m slow
 
 clean:
 	rm -rf .eval_cache .pytest_cache htmlcov .coverage

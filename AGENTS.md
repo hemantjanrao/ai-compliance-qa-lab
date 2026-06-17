@@ -23,6 +23,8 @@ make gate           # compare eval/reports/current.json vs baseline.json
 make promote-baseline   # copy current → baseline (only after a good full run)
 make serve          # Streamlit UI (RAG + Agent + Eval tabs)
 make api            # FastAPI on :8000
+make garak-redteam  # optional automated red-team scan (garak)
+make promptfoo-eval # prompt v1 vs v2 regression
 ```
 
 ## Repository map
@@ -34,6 +36,7 @@ make api            # FastAPI on :8000
 | `tests/` | Fast unit tests — no API keys |
 | `promptfoo/` | Config-driven prompt regression |
 | `docs/` | Architecture, eval strategy, study guide, agent QA |
+| `docs/ALLIANZ_SUPPLEMENT.md` | LangSmith, ISTQB, A/B, garak, spec-driven QA (interview gaps) |
 | `.github/workflows/eval-gate.yml` | CI: unit → eval-fast (PR) → eval-full + promote (main) |
 
 ## Eval architecture (short)
@@ -53,6 +56,7 @@ make api            # FastAPI on :8000
 
 - `docs/ONBOARDING_7_DAYS.md` — 7-day onboarding schedule (start here)
 - `docs/DAY_02_RAGAS.md` — Day 2 detailed workbook (RAGAS + golden datasets)
+- `docs/ALLIANZ_SUPPLEMENT.md` — interview gaps (LangSmith, ISTQB, A/B, garak)
 - `docs/STUDY_GUIDE.md` — exercises by module
 - `docs/STUDY_PLAN.md` — 4-week schedule
 - `docs/EVAL_STRATEGY.md` — test pyramid, OWASP mapping, gate logic

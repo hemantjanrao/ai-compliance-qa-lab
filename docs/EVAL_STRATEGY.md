@@ -66,8 +66,11 @@ How we test AI systems in this lab — and *why*. Use this doc to study for AI Q
 | LLM09 Misinformation | Article 999 / fake chapters | `eval/test_adversarial.py` |
 | Agent: tool hallucination | "Use send_email tool" | `eval/agent/test_adversarial.py` |
 | Agent: infinite loops | Duplicate tool+args counter | `eval/agent/test_tool_selection.py` |
+| LLM03 Supply chain | Pinned langchain/ragas in pyproject | `tests/test_supply_chain.py` |
+| LLM04 Ingest poisoning | Reject missing/untrusted corpus | `tests/test_ingest_guards.py` |
+| LLM05 DoS / oversized input | Max question length guard | `app/guards.py`, `tests/test_input_guards.py` |
 
-**Study gap to fill:** LLM03 (supply chain), LLM04 (data poisoning at ingest), LLM05 (DoS) — document why N/A or add later.
+**Extended study:** `docs/ALLIANZ_SUPPLEMENT.md` (LangSmith, ISTQB, A/B, spec-driven, garak, Playwright).
 
 ## The gate: floors + regression
 

@@ -13,6 +13,7 @@ from typing import Any
 from anthropic import Anthropic
 
 from app.agent.tools import execute_tool, get_tool_schemas
+from app.guards import validate_question
 from app.observability import flush, trace
 
 AGENT_SYSTEM_PROMPT = """You are an EU AI Act compliance research agent.
@@ -64,6 +65,7 @@ class AgentRun:
 
 
 def run_agent(question: str, model: str | None = None, max_steps: int = MAX_STEPS) -> AgentRun:
+    question = validate_question(question)
     with trace(
         "run_agent",
         input={"question": question, "max_steps": max_steps},

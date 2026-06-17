@@ -7,6 +7,7 @@ from dataclasses import dataclass
 import chromadb
 
 from app.embeddings import get_chroma_embedding_function
+from app.guards import validate_question
 from app.observability import observe, trace
 from app.providers import LLMProvider, ProviderName, get_provider
 
@@ -98,5 +99,6 @@ def answer_with_chunks(
 
 @observe(name="answer", as_type="chain")
 def answer(question: str, provider: ProviderName = "anthropic", k: int = 5) -> RAGResult:
+    question = validate_question(question)
     chunks = retrieve(question, k=k)
     return answer_with_chunks(question, chunks, provider=provider)

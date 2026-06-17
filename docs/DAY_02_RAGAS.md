@@ -37,7 +37,7 @@ Verify environment:
 | Corpus ingested  | `curl -s localhost:8000/health` (with `make api` running) OR check ingest ran | `corpus_chunks` > 0                    |
 | Anthropic key    | `.env` → `ANTHROPIC_API_KEY`                                                  | Set (needed for RAGAS judge + answers) |
 | Local embeddings | `.env` → `EMBEDDING_PROVIDER=local` (default)                                 | No OpenAI needed for retrieval         |
-| Golden file      | `eval/datasets/golden.jsonl`                                                  | 20 lines today; you'll add 3           |
+| Golden file      | `eval/datasets/golden.jsonl`                                                  | 23 cases (rag-001 … rag-023)           |
 
 
 > **Cost note:** Today's RAGAS run uses Anthropic Haiku as the *judge* (`eval/ragas_config.py`) plus Haiku/mini for *answers*. One provider run ≈ $0.30–0.80. Start with `-k anthropic` only.

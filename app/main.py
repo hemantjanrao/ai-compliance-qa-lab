@@ -3,9 +3,10 @@ from __future__ import annotations
 
 from dotenv import load_dotenv
 from fastapi import FastAPI
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 from app.agent import run_agent
+from app.guards import validate_question
 from app.providers import ProviderName
 from app.rag import answer, collection_chunk_count
 
@@ -17,6 +18,11 @@ class QueryIn(BaseModel):
     question: str
     provider: ProviderName = "anthropic"
     k: int = 5
+
+    @field_validator("question")
+    @classmethod
+    def check_question(cls, v: str) -> str:
+        return validate_question(v)
 
 
 class ChunkOut(BaseModel):
@@ -36,6 +42,11 @@ class QueryOut(BaseModel):
 
 class AgentIn(BaseModel):
     question: str
+
+    @field_validator("question")
+    @classmethod
+    def check_question(cls, v: str) -> str:
+        return validate_question(v)
 
 
 class AgentStepOut(BaseModel):
