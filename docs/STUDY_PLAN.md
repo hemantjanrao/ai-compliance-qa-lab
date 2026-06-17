@@ -1,5 +1,7 @@
 # 4-Week Study Plan
 
+> **7-day fast track:** see [`ONBOARDING_7_DAYS.md`](ONBOARDING_7_DAYS.md) and [`DAY_02_RAGAS.md`](DAY_02_RAGAS.md) for the condensed onboarding path.
+
 Hours/day target: **2.5 weekday, 4 weekend**. Total ~85 hours.
 
 ---

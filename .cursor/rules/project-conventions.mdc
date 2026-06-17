@@ -1,0 +1,36 @@
+---
+description: Core conventions for the AI Compliance QA Lab
+alwaysApply: true
+---
+
+# AI Compliance QA Lab — Conventions
+
+## Test placement
+
+- `tests/` — fast unit tests, **no API keys** (gate math, tools, poisoned RAG, env checks)
+- `eval/` — integration evals that call LLM APIs (RAGAS, DeepEval, adversarial, agent trajectories)
+- Run `make unit` after every code change; run `make eval-fast` or `make eval-full` before merging eval-related changes
+
+## Secrets and artifacts
+
+- Never commit `.env`, API keys, or `corpus/*.pdf`
+- Do not commit `eval/reports/current.json` or `gate-summary.md` (gitignored, generated)
+- `eval/reports/baseline.json` is committed — only update via `make promote-baseline` after intentional calibration
+
+## Code style
+
+- Python 3.11+, minimal focused diffs, match existing patterns in surrounding files
+- Keep `langchain` pinned to 0.3.x (`pyproject.toml`) — do not upgrade without verifying ragas compatibility
+- Prefer extending existing helpers in `eval/helpers.py`, `eval/reporting.py`, `eval/gate.py` over duplicating logic
+
+## When changing evals
+
+- New golden cases → `eval/datasets/golden.jsonl` or `eval/agent/golden_trajectories.jsonl`
+- New thresholds → `eval/thresholds.yaml` with a comment explaining calibration source
+- Gate logic changes → update `tests/test_gate.py` unit tests
+
+## CI awareness
+
+- PR: `unit` + `eval-fast` + full eval gate (blocks merge on regression)
+- Main push: `eval-full` + auto-promote baseline on success
+- See `.github/workflows/eval-gate.yml`
