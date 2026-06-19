@@ -8,6 +8,7 @@ Save it as corpus/eu_ai_act.pdf, then run:
 from __future__ import annotations
 
 import os
+import re
 import sys
 from pathlib import Path
 
@@ -18,11 +19,24 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 import chromadb
 
 from app.embeddings import get_chroma_embedding_function, get_embedding_provider
+from app.retrieval.bm25_index import BM25Index
+from app.retrieval.config import bm25_index_path
 
 load_dotenv()
 
 CORPUS_DIR = Path("corpus")
 PDF_PATH = CORPUS_DIR / "eu_ai_act.pdf"
+_ARTICLE_RE = re.compile(r"\bArticle\s+(\d{1,3})\b")
+
+
+def _chunk_metadata(page_content: str, page: int) -> dict:
+    meta: dict = {"source": f"page_{page}", "page": page}
+    match = _ARTICLE_RE.search(page_content)
+    if match:
+        article = int(match.group(1))
+        if 1 <= article <= 113:
+            meta["article"] = article
+    return meta
 
 
 def main() -> int:
@@ -55,15 +69,17 @@ def main() -> int:
         pass
     coll = client.create_collection(name=name, embedding_function=embed_fn)
 
-    coll.add(
-        ids=[f"chunk_{i}" for i in range(len(chunks))],
-        documents=[c.page_content for c in chunks],
-        metadatas=[
-            {"source": f"page_{c.metadata.get('page', 0)}", "page": c.metadata.get("page", 0)}
-            for c in chunks
-        ],
-    )
+    ids = [f"chunk_{i}" for i in range(len(chunks))]
+    documents = [c.page_content for c in chunks]
+    metadatas = [_chunk_metadata(c.page_content, c.metadata.get("page", 0)) for c in chunks]
+
+    coll.add(ids=ids, documents=documents, metadatas=metadatas)
+
+    bm25 = BM25Index.from_records(ids=ids, documents=documents, metadatas=metadatas)
+    index_path = bm25_index_path()
+    bm25.save(index_path)
     print(f"Ingested {len(chunks)} chunks into '{name}' collection.")
+    print(f"BM25 index saved to {index_path}")
     return 0
 
 

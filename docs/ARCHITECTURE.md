@@ -59,6 +59,7 @@ sequenceDiagram
 | Choice | Rationale | Alternative considered |
 |---|---|---|
 | ChromaDB | Local, no infra, persistent | Pinecone (cost), pgvector (overhead) |
+| **Advanced retrieval** (`app/retrieval/`) | Hybrid BM25 + dense, RRF fusion, cross-encoder rerank, query expansion | Basic vector-only (still available via `RAG_RETRIEVAL_MODE=basic`) |
 | RecursiveCharacterTextSplitter with `\nArticle ` separator | Preserves legal structure | Semantic chunking (slower, marginal gain) |
 | OpenAI text-embedding-3-small | Cheap, strong recall | BGE local (avoids API but adds infra) |
 | Two providers wired from day 1 | Provider diversity is an interview signal | Single provider (less work but weaker story) |
@@ -134,6 +135,7 @@ Traced spans: `retrieve`, `answer`, `llm_generate`, `run_agent`, `tool.*`
 ```
 app/
   rag.py              RAG retrieve + generate
+  retrieval/          Hybrid BM25 + vector, RRF, cross-encoder rerank
   observability.py    Langfuse traces (no-op without keys)
   agent/              ReAct loop + 4 tools
   providers.py        Anthropic / OpenAI abstraction
@@ -146,10 +148,27 @@ eval/
 tests/                Fast unit tests
 ```
 
+## Advanced retrieval (Phase 2)
+
+When `RAG_RETRIEVAL_MODE=advanced` (default):
+
+```mermaid
+flowchart TD
+  Q[Question] --> E[Query expansion]
+  E --> V[Dense search Chroma]
+  E --> B[BM25 sparse search]
+  V --> RRF[Reciprocal Rank Fusion]
+  B --> RRF
+  RRF --> CE[Cross-encoder rerank]
+  CE --> C[Top-k chunks → prompt]
+```
+
+Set `RAG_RETRIEVAL_MODE=basic` to restore naive vector-only retrieval.
+
 ## What's intentionally out of scope
 
 - Fine-tuning
-- Re-ranking (future enhancement)
+- Managed vector DB (Pinecone / pgvector HA)
 - Multi-modal
 - Multi-agent orchestration
 - Tool side effects (email, DB writes) — read-only tools only

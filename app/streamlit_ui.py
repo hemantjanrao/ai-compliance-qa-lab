@@ -18,6 +18,7 @@ from app.env_check import (
     provider_status,
 )
 from app.rag import answer, collection_chunk_count
+from app.retrieval.config import RetrievalMode, get_retrieval_mode
 
 REPORT_PATH = Path("eval/reports/current.json")
 BASELINE_PATH = Path("eval/reports/baseline.json")
@@ -52,6 +53,13 @@ with tab_rag:
 
         default_idx = providers.index(default_llm_provider()) if default_llm_provider() in providers else 0
         provider = st.selectbox("Provider", providers, index=default_idx, key="rag_provider")
+        retrieval_mode = st.selectbox(
+            "Retrieval mode",
+            ["advanced", "basic"],
+            index=0 if get_retrieval_mode() == RetrievalMode.ADVANCED else 1,
+            key="rag_retrieval_mode",
+            help="Advanced: hybrid BM25 + vector fusion + cross-encoder rerank",
+        )
         k = st.slider("Retrieved chunks (k)", 1, 10, 5, key="rag_k")
 
     chunks = collection_chunk_count()
@@ -73,12 +81,13 @@ with tab_rag:
         else:
             try:
                 with st.spinner("Retrieving and generating..."):
-                    result = answer(question, provider=provider, k=k)
+                    mode = RetrievalMode(retrieval_mode)
+                    result = answer(question, provider=provider, k=k, mode=mode)
                 st.subheader("Answer")
                 st.write(result.answer)
                 st.caption(
-                    f"Model: {result.model} | In: {result.input_tokens} tok | "
-                    f"Out: {result.output_tokens} tok"
+                    f"Model: {result.model} | Retrieval: {result.retrieval_mode} | "
+                    f"In: {result.input_tokens} tok | Out: {result.output_tokens} tok"
                 )
                 with st.expander("Retrieved chunks"):
                     for i, c in enumerate(result.chunks):

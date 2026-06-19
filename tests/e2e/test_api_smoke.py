@@ -15,6 +15,7 @@ def test_health_endpoint_shape():
     body = r.json()
     assert "status" in body
     assert "corpus_chunks" in body
+    assert "retrieval_mode" in body
     assert isinstance(body["corpus_chunks"], int)
 
 

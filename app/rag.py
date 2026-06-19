@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 import chromadb
 
@@ -10,6 +11,12 @@ from app.embeddings import get_chroma_embedding_function
 from app.guards import validate_question
 from app.observability import observe, trace
 from app.providers import LLMProvider, ProviderName, get_provider
+from app.retrieval.config import RetrievalMode, get_retrieval_mode
+from app.retrieval.pipeline import retrieve_basic, retrieve_chunks
+from app.retrieval.types import RetrievedChunk
+
+if TYPE_CHECKING:
+    from chromadb.api.models.Collection import Collection
 
 SYSTEM_PROMPT = """You are a compliance assistant answering questions about the EU AI Act.
 
@@ -31,13 +38,6 @@ Answer:"""
 
 
 @dataclass
-class RetrievedChunk:
-    text: str
-    source: str
-    distance: float
-
-
-@dataclass
 class RAGResult:
     answer: str
     chunks: list[RetrievedChunk]
@@ -45,9 +45,10 @@ class RAGResult:
     output_tokens: int
     model: str
     provider: str
+    retrieval_mode: str = "basic"
 
 
-def _get_collection():
+def _get_collection() -> Collection:
     client = chromadb.PersistentClient(path=os.getenv("CHROMA_PATH", "./chroma_db"))
     embed_fn = get_chroma_embedding_function()
     return client.get_or_create_collection(
@@ -65,19 +66,21 @@ def collection_chunk_count() -> int:
 
 
 @observe(name="retrieve", as_type="retriever")
-def retrieve(question: str, k: int = 5) -> list[RetrievedChunk]:
-    coll = _get_collection()
-    res = coll.query(query_texts=[question], n_results=k)
-    chunks = []
-    for doc, meta, dist in zip(res["documents"][0], res["metadatas"][0], res["distances"][0]):
-        chunks.append(RetrievedChunk(text=doc, source=meta.get("source", "unknown"), distance=dist))
-    return chunks
+def retrieve(
+    question: str,
+    k: int = 5,
+    *,
+    mode: RetrievalMode | None = None,
+) -> list[RetrievedChunk]:
+    return retrieve_chunks(question, k=k, mode=mode)
 
 
 def answer_with_chunks(
     question: str,
     chunks: list[RetrievedChunk],
     provider: ProviderName = "anthropic",
+    *,
+    retrieval_mode: str | None = None,
 ) -> RAGResult:
     """Generate an answer from pre-selected chunks (used by poisoned-retrieval tests)."""
     context = "\n\n".join(f"[Source: {c.source}]\n{c.text}" for c in chunks)
@@ -94,11 +97,35 @@ def answer_with_chunks(
         output_tokens=resp.output_tokens,
         model=resp.model,
         provider=resp.provider,
+        retrieval_mode=retrieval_mode or get_retrieval_mode().value,
     )
 
 
 @observe(name="answer", as_type="chain")
-def answer(question: str, provider: ProviderName = "anthropic", k: int = 5) -> RAGResult:
+def answer(
+    question: str,
+    provider: ProviderName = "anthropic",
+    k: int = 5,
+    *,
+    mode: RetrievalMode | None = None,
+) -> RAGResult:
     question = validate_question(question)
-    chunks = retrieve(question, k=k)
-    return answer_with_chunks(question, chunks, provider=provider)
+    resolved_mode = mode or get_retrieval_mode()
+    chunks = retrieve(question, k=k, mode=resolved_mode)
+    return answer_with_chunks(
+        question,
+        chunks,
+        provider=provider,
+        retrieval_mode=resolved_mode.value,
+    )
+
+
+__all__ = [
+    "RetrievedChunk",
+    "RAGResult",
+    "retrieve",
+    "retrieve_basic",
+    "answer",
+    "answer_with_chunks",
+    "collection_chunk_count",
+]

@@ -9,8 +9,9 @@ This repo is a **hands-on AI QA laboratory**: a production-style RAG + agent app
 | **Maintainer** | Fix CI, upgrade deps, tune thresholds, promote baseline, add tests | Say: *"Use repo-maintainer skill"* or `@.cursor/skills/repo-maintainer/SKILL.md` |
 | **Tutor** | Learn AI QA, interview prep, understand failing tests | Say: *"Use ai-qa-tutor skill"* or `@.cursor/skills/ai-qa-tutor/SKILL.md` |
 | **Stack review** | Audit repo vs senior AI QA market expectations, practice readiness | Say: *"Use ai-qa-stack-review skill"* or `@.cursor/skills/ai-qa-stack-review/SKILL.md` |
+| **Lead AI/ML** | Architecture, system design, MLOps, Staff/Lead interview prep, RFCs | Say: *"Use lead-ai-ml-engineer skill"* or `@.cursor/skills/lead-ai-ml-engineer/SKILL.md` |
 
-Default to **maintainer** for code changes; default to **tutor** when the user is learning or asks "why" / "explain" / "quiz me"; use **stack review** when assessing portfolio or "is this lab enough for senior AI QA?"
+Default to **maintainer** for code changes; default to **tutor** when the user is learning or asks "why" / "explain" / "quiz me"; use **stack review** when assessing portfolio or "is this lab enough for senior AI QA?"; use **Lead AI/ML** for architecture, scaling, production evolution, or Staff-level system design interviews.
 
 ## Key commands
 
