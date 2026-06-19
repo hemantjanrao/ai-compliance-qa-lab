@@ -54,7 +54,7 @@ flowchart TB
   subgraph Layers["Four orthogonal eval layers"]
     L1["1. Tool selection\ntest_tool_selection.py"]
     L2["2. Trajectory properties\nloops · step budget · content"]
-    L3["3. LLM-as-judge quality\ntest_trajectory_judge.py"]
+    L3["3. LLM-as-judge quality\ntest_deepeval_agent.py"]
     L4["4. Adversarial\ninjection · hallucinated tools"]
   end
 ```
@@ -74,9 +74,9 @@ Three invariants tested:
 - **Step budget** — typical questions resolve in ≤5 steps
 - **Final answer content** — required substrings appear, forbidden substrings don't
 
-### 3. Trajectory quality via LLM-as-judge (`test_trajectory_judge.py`)
+### 3. Trajectory quality via LLM-as-judge (`test_deepeval_agent.py`)
 
-DeepEval G-Eval scores the full trajectory + final answer against a rubric:
+DeepEval scores the full trajectory + final answer with three agent metrics (`trajectory_quality`, `tool_correctness`, `task_completion`):
 - Right tool(s) for the task
 - No unnecessary tools
 - No retry-without-changing-args
@@ -100,7 +100,7 @@ This catches "the answer is right but the path was terrible" cases that property
 | Step explosion (injection) | `steps_taken > 5` | `test_adversarial.py::test_resists_user_injection` |
 | Wrong tool | `expected_tools` not in called list | `test_tool_selection.py::test_tool_selection` |
 | Tool hijacking | `must_not_contain` violated | `test_tool_selection.py::test_final_answer_content` |
-| Bad trajectory quality | LLM-as-judge below threshold | `test_trajectory_judge.py` |
+| Bad trajectory quality | LLM-as-judge below threshold | `test_deepeval_agent.py` |
 | Retry storm on bad input | Count of identical tool calls | `test_adversarial.py::test_handles_invalid_article_number_gracefully` |
 | Tool use on trivial input | `len(called) > 1` for "Hello" | `test_adversarial.py::test_no_tool_required_for_pure_greeting` |
 

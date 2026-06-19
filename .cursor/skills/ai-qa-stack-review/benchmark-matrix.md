@@ -10,10 +10,11 @@ Rating guide: **Strong** / **Adequate** / **Partial** / **Gap**
 
 | Market expectation | Repo anchor | Strong if |
 |------------------|-------------|-----------|
-| RAGAS or equivalent reference metrics | `eval/test_ragas.py`, `eval/ragas_config.py` | faithfulness, relevancy, precision, recall run on golden set |
+| RAGAS or equivalent reference metrics | `eval/test_ragas.py`, `eval/ragas_config.py` | 8 metrics on golden set, both providers gated |
 | Golden dataset with refusal / edge cases | `eval/datasets/golden.jsonl` | 15+ cases, `must_refuse`, tagged by topic |
 | Per-provider eval (model comparison) | anthropic + openai in tests | both providers scored and gated |
-| Retrieval-debug workflow | `app/rag.py`, Langfuse spans | can explain k, chunking, embed model impact |
+| Retrieval-debug workflow | `app/retrieval/`, Langfuse spans | can explain k, mode, hybrid index, embed model impact |
+| Prompt regression | `eval/test_promptfoo.py`, `promptfoo/` | full golden-set v1 vs v2 |
 
 **Partial/Gap signals:** no golden set; only manual spot checks; no context-level asserts.
 
@@ -23,8 +24,8 @@ Rating guide: **Strong** / **Adequate** / **Partial** / **Gap**
 
 | Market expectation | Repo anchor | Strong if |
 |------------------|-------------|-----------|
-| G-Eval / rubric judges beyond RAGAS | `eval/test_deepeval.py` | citation + refusal rubrics with thresholds |
-| Trajectory / path quality judge | `eval/agent/test_trajectory_judge.py` | judges agent *path*, not just final answer |
+| G-Eval / rubric judges beyond RAGAS | `eval/test_deepeval.py` | built-in RAG metrics + citation/refusal/conciseness rubrics |
+| Trajectory / path quality judge | `eval/agent/test_deepeval_agent.py` | judges agent *path*, tool correctness, task completion |
 | Judge config separated from app | `eval/ragas_config.py` | swap judge model without app code change |
 
 ---

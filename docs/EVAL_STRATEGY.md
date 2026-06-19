@@ -6,10 +6,10 @@ How we test AI systems in this lab — and *why*. Use this doc to study for AI Q
 
 ```mermaid
 flowchart BT
-  Top["Trajectory judge · RAGAS full run\nslow · LLM-as-judge"]
-  Mid["DeepEval G-Eval rubrics\nMetamorphic + bias\nmedium cost"]
-  Fast["Adversarial (RAG + agent)\nBudget (latency + cost)\ncheap · high signal"]
-  Base["Unit tests (tools, gate math, poisoned RAG)\nfree · instant"]
+  Top["RAGAS (8 metrics) · trajectory judge · promptfoo\nslow · LLM-as-judge"]
+  Mid["DeepEval built-in + G-Eval · metamorphic · bias\nmedium cost"]
+  Fast["Adversarial (RAG + agent) · budget\n cheap · high signal"]
+  Base["Unit tests (tools, gate, poisoned RAG, retrieval fusion)\nfree · instant"]
 
   Base --> Fast --> Mid --> Top
 ```
@@ -20,21 +20,21 @@ flowchart BT
 
 ### 1. Reference-based (RAGAS)
 
-**What:** faithfulness, answer relevancy, context precision/recall against `eval/datasets/golden.jsonl`.
+**What:** eight single-turn RAG metrics against `eval/datasets/golden.jsonl`: faithfulness, answer relevancy, context precision/recall, answer correctness, answer similarity, context entity recall, context relevance.
 
 **Why interviewers care:** shows you know the standard RAG metrics and their failure modes.
 - Low faithfulness → model ignoring context or hallucinating
-- Low context recall → retrieval missing the right chunks
+- Low context recall → retrieval missing the right chunks (check `RAG_RETRIEVAL_MODE`, k, hybrid index)
 
 **File:** `eval/test_ragas.py`
 
-### 2. Custom rubrics (DeepEval G-Eval)
+### 2. Custom rubrics (DeepEval)
 
-**What:** LLM-as-judge with explicit criteria — citation correctness, refusal correctness, trajectory quality.
+**What:** six built-in RAG metrics (faithfulness, relevancy, contextual precision/recall/relevancy, hallucination) plus G-Eval rubrics (citation, refusal, conciseness, article hallucination) and agent metrics (trajectory, tool correctness, task completion).
 
 **Why:** production teams rarely rely on RAGAS alone. Custom rubrics encode *your* product rules.
 
-**Files:** `eval/test_deepeval.py`, `eval/agent/test_trajectory_judge.py`
+**Files:** `eval/test_deepeval.py`, `eval/agent/test_deepeval_agent.py`
 
 ### 3. Property-based (metamorphic + bias)
 
@@ -99,10 +99,12 @@ This mirrors production: "never below 0.80" AND "don't drop more than 5pp vs las
 ```mermaid
 flowchart LR
   Eval[Eval failure] --> Trace[Langfuse trace]
+  Trace --> Mode[retrieval_mode basic vs advanced]
   Trace --> Ret[Retrieved chunks]
   Trace --> Prompt[Full prompt]
   Trace --> Perf[Tokens + latency]
-  Ret --> RCA[Root cause]
+  Mode --> RCA[Root cause]
+  Ret --> RCA
   Prompt --> RCA
   Perf --> RCA
   RCA --> Fix[Fix retrieval · prompt · model]
@@ -111,11 +113,12 @@ flowchart LR
 When faithfulness drops, you need traces — not just a red CI badge.
 
 Langfuse traces in `app/observability.py` capture:
+- Retrieval mode and hybrid span (`retrieve.hybrid` in advanced mode)
 - Retrieved chunks (was retrieval wrong?)
 - Full prompt (did the template change?)
 - Tokens + latency (did we hit a slower model?)
 
-**Study exercise:** intentionally break retrieval (`k=1`), run eval, find the trace in Langfuse, write a one-paragraph root cause.
+**Study exercise:** compare `RAG_RETRIEVAL_MODE=basic` vs `advanced` on Article 5; or set `k=1`, run eval, find bad chunks in Langfuse.
 
 ## Agent-specific: path vs destination
 

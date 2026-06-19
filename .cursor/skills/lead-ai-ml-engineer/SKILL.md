@@ -121,7 +121,7 @@ Default phased roadmap (tailor to user context):
 |-------|------|------------------------|-------------------|
 | 0 | Correctness lab | current repo | golden sets, gate, adversarial |
 | 1 | Staging parity | `make api`, Langfuse | secrets mgmt, env separation, smoke E2E |
-| 2 | Scale retrieval | Chroma local | managed vector DB, re-ranker, cache layer |
+| 2 | Scale retrieval | `app/retrieval/` hybrid + rerank | managed vector DB, retrieval cache, query routing |
 | 3 | Agent hardening | step limits, tools | auth on tools, idempotency, human approval |
 | 4 | Platform eval | `eval/gate.py` | hosted eval UI, HITL raters, A/B traffic |
 | 5 | Governance | EU AI Act domain | model cards, audit logs, data retention policy |
@@ -206,8 +206,7 @@ Proposed | Accepted | Superseded
 ## Known production gaps (always address in report)
 
 - Single-tenant local Chroma — no HA, sharding, or ACL
-- No re-ranking, hybrid search, or query routing at scale
-- No online A/B or feature flags for prompts/models
+- No online A/B or feature flags for prompts/models at scale
 - No HITL eval pipeline or rater agreement metrics
 - No load/soak testing or autoscaling story
 - Agent tools are read-only — production side effects not modeled

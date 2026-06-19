@@ -10,14 +10,15 @@ Rating guide: **Production-ready pattern** / **Lab-appropriate** / **Prototype**
 
 | Market expectation | Repo anchor | Production-ready if |
 |--------------------|-------------|---------------------|
-| Document ingestion pipeline | ingest scripts, chunking in `app/rag.py` | reproducible ingest, versioned corpus |
+| Document ingestion pipeline | ingest scripts, chunking | reproducible ingest, versioned corpus |
 | Chunking strategy with domain rationale | `\nArticle ` separator | can explain recall/precision tradeoff |
-| Embedding model choice documented | OpenAI text-embedding-3-small | cost/latency/quality tradeoff stated |
-| Vector store abstraction | ChromaDB local | swap path to managed DB documented |
-| Retrieval params (k, filters) | `app/rag.py` | tunable without redeploy |
+| Advanced retrieval | `app/retrieval/` | hybrid BM25+dense, RRF, cross-encoder rerank, query expansion |
+| Embedding model choice documented | `app/embeddings.py` | local vs OpenAI tradeoff stated |
+| Vector store abstraction | ChromaDB + BM25 index | swap path to managed DB documented |
+| Retrieval params (k, mode, filters) | `RAG_RETRIEVAL_MODE`, article metadata | tunable without redeploy |
 | Poisoned / adversarial corpus handling | `tests/test_ingest_guards.py` | ingest-time validation |
 
-**Scale signals (usually Lab/Prototype here):** no re-ranker, hybrid BM25+dense, query routing, or corpus versioning at scale.
+**Scale signals (usually Lab/Prototype here):** managed vector DB at HA scale, query routing, corpus versioning, retrieval result cache.
 
 ---
 

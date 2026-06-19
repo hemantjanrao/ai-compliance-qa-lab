@@ -13,19 +13,28 @@ sequenceDiagram
   participant U as User
   participant API as Streamlit / FastAPI
   participant RAG as RAG core
-  participant DB as ChromaDB
+  participant RET as Retrieval pipeline
+  participant DB as ChromaDB + BM25
   participant LLM as LLM provider
   participant LF as Langfuse
 
   U->>API: question
-  API->>RAG: retrieve + generate
-  RAG->>DB: top-k chunks
-  DB-->>RAG: context
+  API->>RAG: answer(question, mode)
+  alt advanced (default)
+    RAG->>RET: expand query · hybrid search
+    RET->>DB: dense + BM25 candidates
+    DB-->>RET: chunk candidates
+    RET->>RET: RRF fusion · cross-encoder rerank
+    RET-->>RAG: top-k chunks
+  else basic
+    RAG->>DB: vector top-k
+    DB-->>RAG: chunks
+  end
   RAG->>LLM: grounded prompt
   LLM-->>RAG: answer
-  RAG-->>API: answer + chunks
+  RAG-->>API: answer + chunks + retrieval_mode
   API-->>U: response
-  RAG->>LF: trace (retrieve, answer, llm_generate)
+  RAG->>LF: trace retrieve · retrieve.hybrid · llm_generate
 ```
 
 ## Agent flow
@@ -61,7 +70,7 @@ sequenceDiagram
 | ChromaDB | Local, no infra, persistent | Pinecone (cost), pgvector (overhead) |
 | **Advanced retrieval** (`app/retrieval/`) | Hybrid BM25 + dense, RRF fusion, cross-encoder rerank, query expansion | Basic vector-only (still available via `RAG_RETRIEVAL_MODE=basic`) |
 | RecursiveCharacterTextSplitter with `\nArticle ` separator | Preserves legal structure | Semantic chunking (slower, marginal gain) |
-| OpenAI text-embedding-3-small | Cheap, strong recall | BGE local (avoids API but adds infra) |
+| Local or OpenAI embeddings (`app/embeddings.py`) | Default local (`all-MiniLM-L6-v2`) — $0 ingest; OpenAI optional | OpenAI-only (higher cost at ingest scale) |
 | Two providers wired from day 1 | Provider diversity is an interview signal | Single provider (less work but weaker story) |
 | Claude Haiku for eval, Sonnet for prod | Cost control | Always-Sonnet (3-5x cost) |
 | RAGAS + DeepEval + promptfoo | Each covers a different angle | Pick one (less interview surface area) |
@@ -73,22 +82,24 @@ See `docs/EVAL_STRATEGY.md` for the full pyramid. Summary:
 
 ```mermaid
 flowchart BT
-  Unit["1. Unit tests (tests/)\ntools · gate math · poisoned RAG"]
-  Ref["2. Reference metrics (RAGAS)\nfaithfulness · precision · recall"]
-  Rubric["3. Custom rubrics (DeepEval G-Eval)\ncitation · refusal · trajectory"]
+  Unit["1. Unit tests (tests/)\ntools · gate · poisoned RAG · retrieval"]
+  Ref["2. Reference metrics (RAGAS)\n8 single-turn metrics"]
+  Rubric["3. DeepEval\nbuilt-in + G-Eval + agent"]
   Prop["4. Property-based\nmetamorphic · bias"]
   Adv["5. Adversarial\nOWASP LLM Top 10"]
-  Gate["6. Gate (eval/gate.py)\nfloors + regression vs baseline"]
+  PF["6. promptfoo\nprompt v1 vs v2"]
+  Gate["7. Gate (eval/gate.py)\nfloors + regression vs baseline"]
 
-  Unit --> Ref --> Rubric --> Prop --> Adv --> Gate
+  Unit --> Ref --> Rubric --> Prop --> Adv --> PF --> Gate
 ```
 
-1. **Unit tests** (`tests/`) — tools, gate math, poisoned retrieval. No API keys.
-2. **Reference metrics** (RAGAS) — faithfulness, context precision/recall, answer relevance.
-3. **Custom rubrics** (DeepEval G-Eval) — citation, refusal, trajectory quality.
+1. **Unit tests** (`tests/`) — tools, gate math, poisoned retrieval, retrieval fusion. No API keys.
+2. **Reference metrics** (RAGAS) — 8 single-turn metrics (faithfulness, relevancy, precision, recall, correctness, similarity, entity recall, context relevance).
+3. **Custom rubrics** (DeepEval) — 6 built-in RAG metrics + 4 G-Eval rubrics + 3 agent metrics.
 4. **Property-based** — paraphrase + demographic invariance via embeddings.
 5. **Adversarial** — OWASP categories + agent-specific attacks.
-6. **Gate** (`eval/gate.py`) — absolute floors + regression vs `eval/reports/baseline.json`.
+6. **Prompt regression** (promptfoo) — full golden-set prompt v1 vs v2.
+7. **Gate** (`eval/gate.py`) — absolute floors + regression vs `eval/reports/baseline.json`.
 
 ## CI pipeline
 
@@ -107,7 +118,7 @@ flowchart TD
   end
 ```
 
-Fast PR feedback on unit tests; `eval-fast` runs adversarial + budget when API secrets are set. Full eval (RAGAS, DeepEval, agent) is **workflow_dispatch only** — blocks regression only when you run it.
+Fast PR feedback on unit tests; `eval-fast` runs adversarial + budget when API secrets are set. Full eval (RAGAS, DeepEval, agent, promptfoo) is **workflow_dispatch only** — blocks regression only when you run it.
 
 ## Handling non-determinism
 
@@ -120,7 +131,7 @@ Fast PR feedback on unit tests; `eval-fast` runs adversarial + budget when API s
 
 `app/observability.py` wraps RAG and agent calls in Langfuse traces when `LANGFUSE_*` keys are set. No-op without keys (unit tests, offline dev).
 
-Traced spans: `retrieve`, `answer`, `llm_generate`, `run_agent`, `tool.*`
+Traced spans: `retrieve`, `retrieve.hybrid`, `answer`, `llm_generate`, `run_agent`, `tool.*`
 
 ## Cost model
 

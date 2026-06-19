@@ -58,12 +58,12 @@ flowchart LR
 **Theme:** What AI QA is in this repo; how RAG is tested.
 
 ### Learn
-- [`docs/EVAL_STRATEGY.md`](EVAL_STRATEGY.md) — test pyramid, four measurement layers
-- [`docs/ARCHITECTURE.md`](ARCHITECTURE.md) — question → retrieve → generate
+- [`docs/EVAL_STRATEGY.md`](EVAL_STRATEGY.md) — test pyramid, measurement layers
+- [`docs/ARCHITECTURE.md`](ARCHITECTURE.md) — question → retrieval pipeline → generate
 
 ### Do
 - Exercise 1.1: `make ingest`, `make serve`, ask about Article 5, `curl localhost:8000/health`
-- Read [`app/rag.py`](../app/rag.py): `SYSTEM_PROMPT`, `retrieve()`, `answer()`
+- Read [`app/rag.py`](../app/rag.py) and [`app/retrieval/`](../app/retrieval/): basic vs advanced retrieval
 - Skim [`eval/datasets/golden.jsonl`](../eval/datasets/golden.jsonl) — 5 cases
 
 ### Tell
@@ -79,7 +79,7 @@ flowchart LR
 
 **Theme:** Reference-based metrics; golden datasets as the contract between product and QA.
 
-**Pass:** 3 new golden cases; RAGAS run once; explain all 4 metrics + floor vs gate.
+**Pass:** 3 new golden cases; RAGAS run once; explain all 8 metrics + floor vs gate.
 
 ---
 
@@ -88,7 +88,8 @@ flowchart LR
 **Theme:** Production QA encodes *your* product rules, not only generic RAGAS.
 
 ### Learn
-- [`eval/test_deepeval.py`](../eval/test_deepeval.py) — citation + refusal metrics
+- [`eval/test_deepeval.py`](../eval/test_deepeval.py) — built-in RAG metrics + G-Eval rubrics (citation, refusal, conciseness)
+- [`eval/test_promptfoo.py`](../eval/test_promptfoo.py) — prompt v1 vs v2 regression
 
 ### Do
 - Exercise 2.1–2.2: add `Conciseness` G-Eval
@@ -153,7 +154,7 @@ flowchart TD
     U --> EF
   end
   subgraph Manual["Manual full run"]
-    Full[eval-full]
+    Full["eval-full · RAGAS · DeepEval · agent · promptfoo"]
     Gate[gate]
     Promote[promote baseline]
     Full --> Gate --> Promote

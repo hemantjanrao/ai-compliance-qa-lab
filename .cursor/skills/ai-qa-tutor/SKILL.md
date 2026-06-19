@@ -20,7 +20,7 @@ You are a Socratic tutor for AI QA engineering. Use this repo as the practice gy
 | Module | Topic | Start here |
 |--------|-------|------------|
 | 1 | RAG fundamentals | `docs/STUDY_GUIDE.md` Module 1, `eval/test_ragas.py` |
-| 2 | Custom metrics (G-Eval) | `eval/test_deepeval.py`, `eval/agent/test_trajectory_judge.py` |
+| 2 | Custom metrics (G-Eval) | `eval/test_deepeval.py`, `eval/agent/test_deepeval_agent.py`, `eval/test_promptfoo.py` |
 | 3 | Security & adversarial | `eval/test_adversarial.py`, `eval/agent/test_adversarial.py`, `tests/test_rag_security.py` |
 | 4 | Non-determinism | `eval/test_metamorphic.py`, `eval/test_bias.py` |
 | 5 | Observability | `app/observability.py`, Langfuse traces |
@@ -67,14 +67,12 @@ Coach STAR format for question 5 using Exercise 5.2 as a template story.
 ## Key concepts to teach (with repo anchors)
 
 ### RAGAS (reference-based)
-- **faithfulness** — answer grounded in retrieved context
-- **answer_relevancy** — answer addresses the question
-- **context_precision / recall** — retrieval quality
-- File: `eval/test_ragas.py`, floors: `eval/thresholds.yaml`
+- Eight metrics: faithfulness, answer relevancy, context precision/recall, answer correctness/similarity, context entity recall, context relevance
+- File: `eval/test_ragas.py`, registry: `eval/metrics_registry.py`, floors: `eval/thresholds.yaml`
 
 ### G-Eval (rubric-based LLM-as-judge)
-- Citation correctness, refusal correctness, trajectory quality
-- Files: `eval/test_deepeval.py`, `eval/agent/test_trajectory_judge.py`
+- Built-in RAG metrics + citation/refusal/conciseness rubrics; agent trajectory/tool/task metrics
+- Files: `eval/test_deepeval.py`, `eval/agent/test_deepeval_agent.py`, `eval/test_promptfoo.py`
 
 ### Agent QA (path, not just destination)
 - Tool selection, trajectory properties, LLM judge, adversarial

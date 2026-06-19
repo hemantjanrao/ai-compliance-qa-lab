@@ -33,7 +33,7 @@ make promptfoo-eval # prompt v1 vs v2 regression
 
 | Path | Purpose |
 |------|---------|
-| `app/` | RAG core, ReAct agent, providers, observability, Streamlit UI |
+| `app/` | RAG core, `retrieval/` (hybrid + rerank), ReAct agent, providers, observability, Streamlit UI |
 | `eval/` | Eval harness, gate, golden datasets, integration eval tests |
 | `tests/` | Fast unit tests — no API keys |
 | `promptfoo/` | Config-driven prompt regression |

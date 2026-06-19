@@ -11,7 +11,7 @@
 
 By the end of Day 2 you will:
 
-1. Explain all **four RAGAS metrics** and what failure mode each catches
+1. Explain all **eight RAGAS metrics** and what failure mode each catches
 2. Treat `eval/datasets/golden.jsonl` as a **test contract** (not just sample data)
 3. **Annotate** every existing golden case (`must_refuse`, tags, why the answer is correct)
 4. **Add 3 new golden cases** and run RAGAS against them
@@ -51,28 +51,32 @@ Verify environment:
 ```mermaid
 flowchart LR
   Golden[golden.jsonl] --> Harness[test_ragas.py]
-  Harness --> RAG[RAG pipeline]
+  Harness --> RAG[RAG + retrieval pipeline]
   RAG --> Answer[generated answer]
   RAG --> Context[retrieved chunks]
   Golden --> Judge[RAGAS judge]
   Answer --> Judge
   Context --> Judge
-  Judge --> Metrics[4 RAGAS metrics]
+  Judge --> Metrics[8 RAGAS metrics]
   Metrics --> Report[current.json]
   Report --> Gate[eval/gate.py]
 ```
 
-### 1.1 The four RAGAS metrics (20 min)
+### 1.1 The eight RAGAS metrics (25 min)
 
-RAGAS measures RAG quality **against a golden reference**. In this repo, the harness is `eval/test_ragas.py`.
+RAGAS measures RAG quality **against a golden reference**. In this repo, the harness is `eval/test_ragas.py` (see `eval/metrics_registry.py` for the canonical list).
 
 
-| Metric                | Question it asks                                        | Low score usually means                     |
-| --------------------- | ------------------------------------------------------- | ------------------------------------------- |
-| **faithfulness**      | Is the answer grounded in retrieved context?            | Model hallucinated or ignored context       |
-| **answer_relevancy**  | Does the answer address the question?                   | Rambling, off-topic, or partial answer      |
-| **context_precision** | Are retrieved chunks relevant (not noisy)?              | Too much irrelevant text in top-k           |
-| **context_recall**    | Did retrieval find the chunks needed for the reference? | Right answer not in corpus chunks retrieved |
+| Metric                    | Question it asks                                        | Low score usually means                     |
+| ------------------------- | ------------------------------------------------------- | ------------------------------------------- |
+| **faithfulness**          | Is the answer grounded in retrieved context?            | Model hallucinated or ignored context       |
+| **answer_relevancy**      | Does the answer address the question?                   | Rambling, off-topic, or partial answer      |
+| **context_precision**     | Are retrieved chunks relevant (not noisy)?              | Too much irrelevant text in top-k           |
+| **context_recall**        | Did retrieval find the chunks needed for the reference? | Right answer not in corpus chunks retrieved |
+| **answer_correctness**    | How close is the answer to the golden reference?      | Right topic but wrong facts or omissions    |
+| **answer_similarity**     | Semantic similarity to expected answer                  | Paraphrase drift or wrong emphasis          |
+| **context_entity_recall** | Were key entities from the reference retrieved?         | Missing article numbers, dates, or terms    |
+| **context_relevance**     | Is retrieved context useful for answering?              | Retrieved text doesn't help the question    |
 
 
 **Study diagram — where failure happens:**
@@ -81,10 +85,10 @@ RAGAS measures RAG quality **against a golden reference**. In this repo, the har
 Question
    │
    ▼
-[retrieve k=5]  ──► context_precision, context_recall
+[retrieval: basic OR hybrid BM25+dense+rerank]  ──► context_precision, context_recall
    │
    ▼
-[LLM generate]  ──► faithfulness, answer_relevancy
+[LLM generate]  ──► faithfulness, answer_relevancy, answer_correctness, answer_similarity
    │
    ▼
 Answer (compared to golden expected_answer)
@@ -232,7 +236,7 @@ pytest eval/test_ragas.py -v -m eval -k anthropic --tb=short
 1. Load all golden rows (now 23 after your additions).
 2. For each: `answer(question, provider="anthropic")` → real RAG call.
 3. Build a HuggingFace `Dataset` with `question`, `answer`, `contexts`, `ground_truth`.
-4. `ragas.evaluate()` runs four metrics with judge LLM.
+4. `ragas.evaluate()` runs eight metrics with judge LLM.
 5. Mean scores written to `eval/reports/current.json` via `ReportCollector`.
 6. Assert each mean ≥ floor from `thresholds.yaml`.
 

@@ -15,8 +15,9 @@ flowchart TB
   subgraph App["Application (app/)"]
     UI[Streamlit / FastAPI]
     RAG[RAG core]
+    Ret["Retrieval pipeline\nhybrid BM25+dense · RRF · rerank"]
     Agent[ReAct agent + 4 tools]
-    Chroma[(ChromaDB)]
+    Store["ChromaDB + BM25 index"]
   end
 
   subgraph Providers["LLM providers"]
@@ -29,6 +30,7 @@ flowchart TB
 
   subgraph QA["Eval & gate (eval/)"]
     Tests[pytest suites]
+    PF[promptfoo regression]
     Current[current.json]
     Gate[gate.py]
     Baseline[baseline.json]
@@ -37,13 +39,15 @@ flowchart TB
   Q --> UI
   UI --> RAG
   UI --> Agent
-  RAG --> Chroma
+  RAG --> Ret
+  Ret --> Store
   Agent --> RAG
   RAG --> LLM
   Agent --> LLM
   RAG --> LF
   Agent --> LF
   Tests --> Current
+  PF --> Current
   Current --> Gate
   Baseline --> Gate
   Thresholds[thresholds.yaml] --> Gate
@@ -55,8 +59,8 @@ flowchart TB
 flowchart BT
   Unit["Unit tests (tests/)\nfree · ~5s · no API keys"]
   Fast["Adversarial + budget (eval-fast)\ncheap · high signal"]
-  Mid["DeepEval · metamorphic · bias\nmedium cost"]
-  Slow["RAGAS · trajectory judge (eval-full)\nslow · LLM-as-judge"]
+  Mid["DeepEval built-in + G-Eval · metamorphic · bias\nmedium cost"]
+  Slow["RAGAS (8 metrics) · trajectory judge · promptfoo\nslow · LLM-as-judge"]
 
   Unit --> Fast --> Mid --> Slow
 ```
@@ -67,8 +71,10 @@ Run `make unit` on every change; run `make eval-full` before merging eval-relate
 
 | Skill | Where in repo |
 |-------|----------------|
+| Advanced retrieval (hybrid + rerank) | `app/retrieval/` | `docs/ARCHITECTURE.md` |
 | RAG quality metrics (RAGAS) | `eval/test_ragas.py` |
-| Custom LLM-as-judge metrics | `eval/test_deepeval.py`, `eval/agent/test_trajectory_judge.py` |
+| Custom LLM-as-judge metrics | `eval/test_deepeval.py`, `eval/agent/test_deepeval_agent.py` |
+| Prompt regression (promptfoo) | `eval/test_promptfoo.py`, `promptfoo/` |
 | Regression gates vs baselines | `eval/gate.py`, `eval/reports/baseline.json` |
 | Adversarial / OWASP testing | `eval/test_adversarial.py`, `eval/agent/test_adversarial.py` |
 | Metamorphic + fairness testing | `eval/test_metamorphic.py`, `eval/test_bias.py` |
@@ -144,7 +150,7 @@ flowchart TD
   end
 
   subgraph Manual["Manual: Actions → Eval Gate → Run workflow"]
-    Full[eval-full · RAGAS + DeepEval + agent]
+    Full["eval-full · RAGAS · DeepEval · agent · promptfoo"]
     Gate[gate]
     Promote[promote baseline · optional]
     Full --> Gate --> Promote
@@ -160,7 +166,7 @@ flowchart TD
 ## Repository layout
 
 ```
-app/             RAG core, agent, providers, observability, UI
+app/             RAG core, retrieval pipeline, agent, observability, UI
 eval/            Eval harness, gate, golden datasets, all test suites
 tests/           Fast unit tests (no API keys)
 promptfoo/       Config-driven prompt regression
