@@ -79,7 +79,9 @@ def pytest_sessionfinish(session, exitstatus):
     if session.config.getoption("--collect-only", default=False):
         return
     data = ReportCollector.data()
-    has_metrics = bool(data.get("ragas") or data.get("latency_p95_ms") or data.get("deepeval"))
+    has_metrics = bool(
+        data.get("ragas") or data.get("latency_p95_ms") or data.get("deepeval") or data.get("promptfoo")
+    )
     has_adversarial = (data.get("adversarial") or {}).get("rag_passed") is not None
     if has_metrics or has_adversarial:
         ReportCollector.save()

@@ -63,6 +63,24 @@ def test_gate_fails_on_latency_regression():
     assert any("latency" in f.check for f in result.failures)
 
 
+def test_gate_fails_on_promptfoo_pass_rate_regression():
+    baseline = {
+        "ragas": {"anthropic": {}, "openai": {}},
+        "promptfoo": {"pass_rate": 0.90},
+        "latency_p95_ms": {},
+        "adversarial": {},
+    }
+    current = {
+        "ragas": {"anthropic": {}, "openai": {}},
+        "promptfoo": {"pass_rate": 0.80},
+        "latency_p95_ms": {},
+        "adversarial": {},
+    }
+    result = compare_reports(baseline, current, max_metric_drop=0.05)
+    assert not result.passed
+    assert any("promptfoo" in f.check for f in result.failures)
+
+
 def test_gate_fails_on_deepeval_floor_breach():
     baseline = {
         "ragas": {"anthropic": {}, "openai": {}},

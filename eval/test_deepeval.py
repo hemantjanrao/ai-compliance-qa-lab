@@ -1,6 +1,9 @@
-"""DeepEval custom metrics — demonstrates G-Eval (LLM-as-judge with rubric).
+"""DeepEval — all applicable RAG metrics (built-in + G-Eval rubrics).
 
-This is what interviewers want to see: custom metrics, not just out-of-the-box.
+Built-in: faithfulness, answer_relevancy, contextual_relevancy, contextual_precision,
+contextual_recall, hallucination.
+
+G-Eval: citation_correctness, refusal_correctness, conciseness, article_hallucination.
 
 Run:
   pytest eval/test_deepeval.py -v -m eval
@@ -8,81 +11,79 @@ Run:
 from __future__ import annotations
 
 import pytest
-from deepeval.metrics import GEval
-from deepeval.test_case import LLMTestCase, LLMTestCaseParams
 
 from app.rag import answer
+from eval.deepeval_helpers import (
+    RagEvalRow,
+    build_llm_test_case,
+    builtin_rag_metrics,
+    filter_cases_for_geval,
+    geval_rag_metrics,
+    mean_score,
+)
 from eval.helpers import load_golden_rag, threshold
+from eval.metrics_registry import DEEPEVAL_RAG_BUILTIN_METRICS, DEEPEVAL_RAG_GEVAL_METRICS
 from eval.reporting import ReportCollector
 
 
-citation_metric = GEval(
-    name="CitationCorrectness",
-    criteria=(
-        "Determine whether the actual output correctly cites EU AI Act articles when the "
-        "expected output contains article references. Penalize hallucinated article numbers."
-    ),
-    evaluation_params=[
-        LLMTestCaseParams.INPUT,
-        LLMTestCaseParams.ACTUAL_OUTPUT,
-        LLMTestCaseParams.EXPECTED_OUTPUT,
-    ],
-    threshold=0.7,
-)
-
-refusal_metric = GEval(
-    name="RefusalCorrectness",
-    criteria=(
-        "If the expected output says 'I cannot find that in the provided documents', "
-        "the actual output should also refuse rather than fabricate an answer. "
-        "If the expected output is a real answer, the actual output should not refuse."
-    ),
-    evaluation_params=[LLMTestCaseParams.ACTUAL_OUTPUT, LLMTestCaseParams.EXPECTED_OUTPUT],
-    threshold=0.8,
-)
+def _load_rows(provider: str) -> list[RagEvalRow]:
+    return [
+        RagEvalRow(
+            question=ex["question"],
+            expected_answer=ex["expected_answer"],
+            must_refuse=bool(ex.get("must_refuse")),
+            tags=ex.get("tags", []),
+            result=answer(ex["question"], provider=provider),
+        )
+        for ex in load_golden_rag()
+    ]
 
 
 @pytest.mark.eval
+@pytest.mark.slow
 @pytest.mark.parametrize("provider", ["anthropic", "openai"])
-def test_citation_correctness(provider: str):
-    cases = [g for g in load_golden_rag() if any("article" in t for t in g.get("tags", []))]
-    cite_threshold = threshold("deepeval.citation_correctness", 0.70)
+@pytest.mark.parametrize("metric_name", DEEPEVAL_RAG_BUILTIN_METRICS)
+def test_deepeval_builtin_rag_metrics(provider: str, metric_name: str):
+    rows = _load_rows(provider)
+    metric = builtin_rag_metrics()[metric_name]
+    floor = threshold(f"deepeval.{metric_name}", 0.70)
     scores: list[float] = []
-    for ex in cases:
-        r = answer(ex["question"], provider=provider)
-        tc = LLMTestCase(
-            input=ex["question"],
-            actual_output=r.answer,
-            expected_output=ex["expected_answer"],
+
+    for row in rows:
+        tc = build_llm_test_case(row)
+        metric.measure(tc)
+        scores.append(metric.score)
+        assert metric.score >= floor, (
+            f"[{provider}] {metric_name} failed for: {row.question}\n"
+            f"Score: {metric.score}, Reason: {getattr(metric, 'reason', '')}\n"
+            f"Answer: {row.result.answer[:300]}"
         )
-        citation_metric.measure(tc)
-        scores.append(citation_metric.score)
-        assert citation_metric.score >= cite_threshold, (
-            f"[{provider}] Citation failed for: {ex['question']}\n"
-            f"Score: {citation_metric.score}, Reason: {citation_metric.reason}"
-        )
-    if scores:
-        ReportCollector.set(f"deepeval.{provider}.citation_correctness", sum(scores) / len(scores))
+
+    ReportCollector.set(f"deepeval.{provider}.{metric_name}", mean_score(scores))
 
 
 @pytest.mark.eval
+@pytest.mark.slow
 @pytest.mark.parametrize("provider", ["anthropic", "openai"])
-def test_refusal_correctness(provider: str):
-    cases = [g for g in load_golden_rag() if g.get("must_refuse") or "negative-test" in g.get("tags", [])]
-    refuse_threshold = threshold("deepeval.refusal_correctness", 0.80)
+@pytest.mark.parametrize("metric_name", DEEPEVAL_RAG_GEVAL_METRICS)
+def test_deepeval_geval_rag_metrics(provider: str, metric_name: str):
+    rows = _load_rows(provider)
+    cases = filter_cases_for_geval(metric_name, rows)
+    if not cases:
+        pytest.skip(f"No golden cases for {metric_name}")
+
+    metric = geval_rag_metrics()[metric_name]
+    floor = threshold(f"deepeval.{metric_name}", 0.70)
     scores: list[float] = []
-    for ex in cases:
-        r = answer(ex["question"], provider=provider)
-        tc = LLMTestCase(
-            input=ex["question"],
-            actual_output=r.answer,
-            expected_output=ex["expected_answer"],
+
+    for row in cases:
+        tc = build_llm_test_case(row)
+        metric.measure(tc)
+        scores.append(metric.score)
+        assert metric.score >= floor, (
+            f"[{provider}] {metric_name} failed for: {row.question}\n"
+            f"Score: {metric.score}, Reason: {metric.reason}\n"
+            f"Answer: {row.result.answer[:300]}"
         )
-        refusal_metric.measure(tc)
-        scores.append(refusal_metric.score)
-        assert refusal_metric.score >= refuse_threshold, (
-            f"[{provider}] Refusal failed: model hallucinated when it should have refused.\n"
-            f"Q: {ex['question']}\nA: {r.answer}\nReason: {refusal_metric.reason}"
-        )
-    if scores:
-        ReportCollector.set(f"deepeval.{provider}.refusal_correctness", sum(scores) / len(scores))
+
+    ReportCollector.set(f"deepeval.{provider}.{metric_name}", mean_score(scores))

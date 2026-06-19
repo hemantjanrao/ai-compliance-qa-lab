@@ -50,7 +50,8 @@ garak-redteam:
 	bash scripts/garak_scan.sh
 
 promptfoo-eval:
-	npx --yes promptfoo@latest eval -c promptfoo/promptfooconfig.yaml
+	python scripts/generate_promptfoo_tests.py
+	npx --yes promptfoo@latest eval -c promptfoo/promptfooconfig.yaml -o promptfoo/output.json
 
 e2e-ui:
 	$(PY) -m pytest tests/e2e/test_streamlit_ui.py -v -m slow

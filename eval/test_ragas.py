@@ -1,8 +1,11 @@
-"""RAGAS-based evaluation. Runs the four core RAG metrics on the golden dataset.
+"""RAGAS evaluation — all standard single-turn RAG metrics on the golden dataset.
+
+Metrics: faithfulness, answer_relevancy, context_precision, context_recall,
+answer_correctness, answer_similarity, context_entity_recall, context_relevance.
 
 Run:
   pytest eval/test_ragas.py -v -m eval
-  pytest eval/test_ragas.py -v -m eval -k anthropic   # one provider only
+  pytest eval/test_ragas.py -v -m eval -k anthropic
 """
 from __future__ import annotations
 
@@ -13,7 +16,11 @@ import pytest
 from datasets import Dataset
 from ragas import evaluate
 from ragas.metrics import (
+    ContextRelevance,
+    answer_correctness,
     answer_relevancy,
+    answer_similarity,
+    context_entity_recall,
     context_precision,
     context_recall,
     faithfulness,
@@ -21,8 +28,20 @@ from ragas.metrics import (
 
 from app.rag import answer
 from eval.helpers import load_golden_rag, threshold
+from eval.metrics_registry import RAGAS_METRICS
 from eval.ragas_config import get_ragas_embeddings, get_ragas_llm
 from eval.reporting import ReportCollector
+
+_RAGAS_METRIC_OBJECTS = [
+    faithfulness,
+    answer_relevancy,
+    context_precision,
+    context_recall,
+    answer_correctness,
+    answer_similarity,
+    context_entity_recall,
+    ContextRelevance(),
+]
 
 
 @pytest.mark.eval
@@ -57,25 +76,25 @@ def _run_metrics(provider: str) -> None:
     )
     result = evaluate(
         ds,
-        metrics=[faithfulness, answer_relevancy, context_precision, context_recall],
+        metrics=_RAGAS_METRIC_OBJECTS,
         llm=get_ragas_llm(),
         embeddings=get_ragas_embeddings(),
     )
     print(f"\n[{provider}] RAGAS scores: {result}")
 
     df = result.to_pandas()
-    for metric in ("faithfulness", "answer_relevancy", "context_precision", "context_recall"):
+    for metric in RAGAS_METRICS:
         if metric not in df.columns:
             pytest.fail(f"{metric} missing from RAGAS output")
         value = float(np.nanmean(df[metric]))
         nan_count = int(df[metric].isna().sum())
         if nan_count:
-            print(f"  warning: {metric} had {nan_count}/{len(df)} NaN scores (judge timeout)")
+            print(f"  warning: {metric} had {nan_count}/{len(df)} NaN scores")
         if math.isnan(value):
             pytest.fail(
                 f"{metric} is all NaN — RAGAS judge failed on every row. "
                 "Check ANTHROPIC_API_KEY and eval/ragas_config.py."
             )
         ReportCollector.set(f"ragas.{provider}.{metric}", value)
-        floor = threshold(f"ragas.{metric}", 0.75)
+        floor = threshold(f"ragas.{metric}", 0.70)
         assert value >= floor, f"{metric} too low: {value:.3f} < {floor}"

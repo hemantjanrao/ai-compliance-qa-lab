@@ -1,15 +1,41 @@
 # Calibrated eval thresholds — tune after `make eval-full`, then `make promote-baseline`.
-# Study note: static floors catch catastrophic regressions; baseline comparison
-# in eval/gate.py catches smaller drift vs the last known-good run.
+# Metric names: eval/metrics_registry.py
 
 version: 1
 
-# Absolute floors (never go below these, even if baseline is higher)
+# RAGAS — all single-turn RAG metrics (eval/test_ragas.py)
 ragas:
   faithfulness: 0.80
   answer_relevancy: 0.80
   context_precision: 0.75
   context_recall: 0.75
+  answer_correctness: 0.70
+  answer_similarity: 0.70
+  context_entity_recall: 0.65
+  context_relevance: 0.70
+
+# DeepEval — built-in RAG + G-Eval + agent (eval/test_deepeval.py, eval/agent/test_deepeval_agent.py)
+deepeval:
+  # built-in RAG
+  faithfulness: 0.70
+  answer_relevancy: 0.70
+  contextual_relevancy: 0.70
+  contextual_precision: 0.70
+  contextual_recall: 0.70
+  hallucination: 0.50
+  # G-Eval rubrics
+  citation_correctness: 0.70
+  refusal_correctness: 0.80
+  conciseness: 0.70
+  article_hallucination: 0.70
+  # agent
+  trajectory_quality: 0.70
+  tool_correctness: 0.70
+  task_completion: 0.70
+
+# promptfoo — aggregate pass rate (eval/test_promptfoo.py)
+promptfoo:
+  pass_rate: 0.75
 
 # Regression limits vs baseline (eval/gate.py)
 gate:
@@ -23,11 +49,6 @@ cost:
   max_per_query_usd:
     anthropic: 0.01
     openai: 0.005
-
-deepeval:
-  citation_correctness: 0.70
-  refusal_correctness: 0.80
-  trajectory_quality: 0.70
 
 metamorphic:
   paraphrase_similarity: 0.78

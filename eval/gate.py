@@ -20,12 +20,14 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from eval.metrics_registry import (
+    DEEPEVAL_AGENT_METRICS,
+    DEEPEVAL_PROVIDER_METRICS,
+    PROMPTFOO_METRICS,
+    PROVIDERS,
+    RAGAS_METRICS,
+)
 from eval.reporting import BASELINE_REPORT, CURRENT_REPORT, load_thresholds
-
-RAGAS_METRICS = ("faithfulness", "answer_relevancy", "context_precision", "context_recall")
-DEEPEVAL_PROVIDER_METRICS = ("citation_correctness", "refusal_correctness")
-DEEPEVAL_AGENT_METRICS = ("trajectory_quality",)
-PROVIDERS = ("anthropic", "openai")
 
 
 @dataclass
@@ -183,6 +185,39 @@ def compare_reports(
                 )
             )
 
+    # --- promptfoo: pass rate floor ---
+    promptfoo_floor = load_thresholds().get("promptfoo", {})
+    for metric in PROMPTFOO_METRICS:
+        value = (current.get("promptfoo") or {}).get(metric)
+        floor = promptfoo_floor.get(metric)
+        if value is None or floor is None:
+            if metric == "pass_rate":
+                result.warnings.append(f"Skipping floor check: promptfoo.{metric} (missing data)")
+            continue
+        if metric == "pass_rate" and value < floor:
+            result.passed = False
+            result.failures.append(
+                GateFailure(
+                    check=f"floor.promptfoo.{metric}",
+                    message=f"promptfoo {metric}={value:.3f} below floor {floor:.3f}",
+                )
+            )
+
+    # --- promptfoo: regression vs baseline ---
+    base_pf = baseline.get("promptfoo") or {}
+    cur_pf = current.get("promptfoo") or {}
+    b, c = base_pf.get("pass_rate"), cur_pf.get("pass_rate")
+    if b is not None and c is not None:
+        drop = _metric_drop(b, c)
+        if drop > max_metric_drop:
+            result.passed = False
+            result.failures.append(
+                GateFailure(
+                    check="regression.promptfoo.pass_rate",
+                    message=f"promptfoo pass_rate dropped {drop:.3f} ({b:.3f} → {c:.3f})",
+                )
+            )
+
     # --- Latency p95 regression ---
     base_lat = baseline.get("latency_p95_ms") or {}
     cur_lat = current.get("latency_p95_ms") or {}
@@ -252,6 +287,13 @@ def format_gate_summary(result: GateResult, baseline: dict, current: dict) -> st
         for metric in DEEPEVAL_AGENT_METRICS:
             if deepeval.get(metric) is not None:
                 lines.append(f"- **agent** {metric}={deepeval[metric]:.3f}")
+        lines.append("")
+
+    promptfoo = current.get("promptfoo") or {}
+    if promptfoo:
+        lines.append("## promptfoo")
+        pf_parts = [f"{m}={promptfoo.get(m)}" for m in PROMPTFOO_METRICS if promptfoo.get(m) is not None]
+        lines.append(f"- {', '.join(pf_parts)}")
         lines.append("")
 
     if result.warnings:

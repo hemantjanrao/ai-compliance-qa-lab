@@ -41,6 +41,7 @@ class ReportCollector:
             "adversarial": {"rag_passed": None, "agent_passed": None},
             "agent": {"cases_run": 0},
             "deepeval": {},
+            "promptfoo": {},
         }
 
     @classmethod
