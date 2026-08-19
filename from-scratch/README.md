@@ -1,6 +1,16 @@
 # From scratch — Session 2
 
-**Wrong folder?** `make ingest` only exists **here**.
+**Using `ai-qa-from-scratch`?** That repo has no `ingest` target until you copy Session 2 in:
+
+```bash
+cd /path/to/ai-compliance-qa-lab
+git checkout cursor/cloud-agent-1787155140471-5fwmr
+bash from-scratch/standalone/install-into.sh /path/to/ai-qa-from-scratch
+cd /path/to/ai-qa-from-scratch
+make setup
+make ingest
+make search Q="What is prohibited under Article 5?"
+```
 
 | Folder | What it is |
 |--------|------------|

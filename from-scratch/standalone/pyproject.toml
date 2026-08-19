@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["app*"]
+
+[project]
+name = "ai-qa-from-scratch"
+version = "0.2.0"
+description = "Session 2 — ingest + local embeddings (no paid API)"
+requires-python = ">=3.11"
+dependencies = [
+    "python-dotenv>=1.0,<3",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3,<9",
+]
+ingest = [
+    "pypdf>=5.1,<7",
+    "chromadb>=0.5.20,<2",
+    "sentence-transformers>=3.0,<6",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "eval: billed / LLM-as-judge tests (none yet)",
+    "adversarial: red-team tests (none yet)",
+    "slow: slow tests (none yet)",
+]
