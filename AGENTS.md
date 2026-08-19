@@ -80,3 +80,15 @@ flowchart LR
 - `.cursor/skills/` — **Cursor playbooks** for maintaining and learning this repo
 
 Do not confuse them when editing or explaining code.
+
+## Cursor Cloud specific instructions
+
+Python 3.12 venv is `.venv/` (see `make setup` in the README). `make serve` and `make api` call `streamlit` / `uvicorn` from `PATH`, not `$(PY)` — use `.venv/bin` on `PATH` (already in `~/.bashrc` on this image) or invoke `.venv/bin/streamlit` and `.venv/bin/uvicorn` directly.
+
+**Must-run locally (no extra daemons):** Streamlit `:8501` and/or FastAPI `:8000`. Chroma is embedded at `./chroma_db` after `make ingest`. Langfuse `docker compose` is optional.
+
+**Corpus gotcha:** `corpus/eu_ai_act.pdf` is gitignored. Direct `curl` of EUR-Lex is blocked here by CloudFront WAF (`x-amzn-waf-action: challenge`). Keep a PDF in `corpus/` across snapshot sessions, or regenerate from the Official Journal text (Chrome `--print-to-pdf` works). First `make ingest` and first advanced retrieve download HuggingFace MiniLM + the cross-encoder; unauthenticated Hub downloads are noisy but work.
+
+**LLM keys:** live `/query` and Streamlit RAG need `ANTHROPIC_API_KEY` and/or `OPENAI_API_KEY`. The ReAct agent is Anthropic-only. Without keys, `/health` still returns `ok` after ingest, retrieval tools (`search_ai_act`, `lookup_article`) work, and the UI shows a missing-key banner instead of generating.
+
+**Checks:** `make unit` and `make learn-s2` (no keys). `ruff` is a dev extra, not a Make/CI target. Playwright Streamlit E2E is opt-in (`E2E_UI=1`, app already up). Do not bump `langchain` past 0.3.x (ragas).
