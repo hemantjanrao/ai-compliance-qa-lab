@@ -40,6 +40,10 @@ def split_text(
     return _apply_overlap(pieces, size, overlap)
 
 
+# Tests may import this name; keep it as an alias of split_text.
+chunk_text = split_text
+
+
 def _split_recursive(text: str, chunk_size: int, separators: list[str]) -> list[str]:
     if len(text) <= chunk_size:
         return [text] if text else []
