@@ -1,7 +1,24 @@
 # From scratch — Session 2
 
-Learner track **inside this repo**. Production RAG still lives in `app/` and
-`scripts/ingest_corpus.py`. Do not copy those files here.
+**Wrong folder?** `make ingest` only exists **here**.
+
+| Folder | What it is |
+|--------|------------|
+| `ai-qa-from-scratch` | Session 1 skeleton (guards, fake LLM). No `ingest` target. |
+| `ai-compliance-qa-lab/from-scratch` | **This** learner lab. Run `make ingest` from this directory. |
+
+```bash
+# from your machine, sibling repos:
+cd ../ai-compliance-qa-lab/from-scratch
+make setup
+make unit
+make ingest
+make search Q="What is prohibited under Article 5?"
+```
+
+If `from-scratch/` is missing, you are on `main` before this branch. Checkout the Session 2 branch or pull PR #1.
+
+---
 
 Session 2 pipeline:
 
