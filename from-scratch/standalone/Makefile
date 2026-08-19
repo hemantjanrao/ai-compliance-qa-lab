@@ -25,5 +25,9 @@ ingest:
 search:
 	$(PY) scripts/search_chunks.py "$(Q)"
 
+# Session 3 — grounded answer (uses FakeProvider unless you set a real key)
+ask:
+	$(PY) scripts/ask.py "$(Q)"
+
 clean:
 	rm -rf .pytest_cache chroma_db

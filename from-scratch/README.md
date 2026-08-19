@@ -65,7 +65,20 @@ make ingest
 make search Q="What is prohibited under Article 5?"
 ```
 
-## What you should be able to explain
+## Session 3 — naive RAG
+
+Grounded prompt + a **fixed refusal sentence**. Tests inject chunks (no Chroma).
+
+After pulling this branch, re-run the installer (it now copies `app/rag.py` and `tests/test_rag.py`):
+
+```bash
+bash from-scratch/standalone/install-into.sh /path/to/ai-qa-from-scratch
+cd /path/to/ai-qa-from-scratch
+make unit
+make ask Q="What is prohibited under Article 5?"
+```
+
+`make ask` uses your Session 1 FakeProvider until you set a real API key. Unit tests inject a stub LLM so they stay free.
 
 1. Why `corpus/../.env` must be rejected (`Path.resolve` + `is_relative_to`)
 2. Why chunk size / overlap change retrieval quality

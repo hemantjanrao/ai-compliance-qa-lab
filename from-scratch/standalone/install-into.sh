@@ -17,7 +17,7 @@ if [[ ! -f "$DEST/app/guards.py" ]]; then
   exit 1
 fi
 
-mkdir -p "$DEST/app" "$DEST/scripts" "$DEST/corpus"
+mkdir -p "$DEST/app" "$DEST/scripts" "$DEST/corpus" "$DEST/tests"
 cp "$SRC/Makefile" "$DEST/Makefile"
 cp "$SRC/pyproject.toml" "$DEST/pyproject.toml"
 cp "$SRC/.env.example" "$DEST/.env.example"
@@ -25,9 +25,13 @@ cp "$SRC/app/ingest.py" "$DEST/app/ingest.py"
 cp "$SRC/app/chunking.py" "$DEST/app/chunking.py"
 cp "$SRC/app/embeddings.py" "$DEST/app/embeddings.py"
 cp "$SRC/app/pipeline.py" "$DEST/app/pipeline.py"
+cp "$SRC/app/rag.py" "$DEST/app/rag.py"
 cp "$SRC/scripts/ingest_corpus.py" "$DEST/scripts/ingest_corpus.py"
 cp "$SRC/scripts/search_chunks.py" "$DEST/scripts/search_chunks.py"
+cp "$SRC/scripts/ask.py" "$DEST/scripts/ask.py"
 cp "$SRC/corpus/sample_policy.txt" "$DEST/corpus/sample_policy.txt"
+mkdir -p "$DEST/tests"
+cp "$SRC/tests/test_rag.py" "$DEST/tests/test_rag.py"
 
 # Keep Session 1 secrets file; append Session 2 keys if missing
 if [[ -f "$DEST/.env" ]] && ! grep -q 'EMBEDDING_PROVIDER' "$DEST/.env"; then
@@ -43,9 +47,11 @@ MAX_ARTICLE=20
 EOF
 fi
 
-echo "Installed Session 2 into $DEST"
+echo "Installed Session 2–3 into $DEST"
 echo "Next:"
 echo "  cd $DEST"
 echo "  make setup"
+echo "  make unit"
 echo "  make ingest"
 echo "  make search Q=\"What is prohibited under Article 5?\""
+echo "  make ask Q=\"What is prohibited under Article 5?\""
