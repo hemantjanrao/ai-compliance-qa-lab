@@ -2,7 +2,9 @@
 
 A hands-on laboratory for becoming a strong **AI QA engineer**: production-style RAG + agent app over the **EU AI Act**, with a full eval pyramid and CI gate.
 
-> **Study-first design:** every layer maps to a skill interviewers test in 2026. See [`docs/STUDY_GUIDE.md`](docs/STUDY_GUIDE.md) for exercises.
+> **Study-first design:** every layer maps to a skill interviewers test in 2026.
+> - **Concept mastery:** [`docs/learn/00_MASTER_CURRICULUM.md`](docs/learn/00_MASTER_CURRICULUM.md) — every concept in this repo + advanced Python, with per-module deep dives
+> - **Exercises:** [`docs/STUDY_GUIDE.md`](docs/STUDY_GUIDE.md)
 
 ## System overview
 
