@@ -2,7 +2,9 @@
 
 A hands-on laboratory for becoming a strong **AI QA engineer**: production-style RAG + agent app over the **EU AI Act**, with a full eval pyramid and CI gate.
 
-> **Study-first design:** every layer maps to a skill interviewers test in 2026. See [`docs/STUDY_GUIDE.md`](docs/STUDY_GUIDE.md) for exercises.
+> **Study-first design:** every layer maps to a skill interviewers test in 2026.
+> - **Concept mastery:** [`docs/learn/00_MASTER_CURRICULUM.md`](docs/learn/00_MASTER_CURRICULUM.md) — every concept in this repo + advanced Python, with per-module deep dives
+> - **Exercises:** [`docs/STUDY_GUIDE.md`](docs/STUDY_GUIDE.md)
 
 ## System overview
 
@@ -81,6 +83,7 @@ Run `make unit` on every change; run `make eval-full` before merging eval-relate
 | Agent trajectory QA | `eval/agent/`, `docs/AGENT_QA.md` |
 | Observability for drift debug | `app/observability.py` + Langfuse |
 | Fast unit tests (no API) | `tests/` |
+| Build-from-scratch Session 2 | `from-scratch/` |
 | Poisoned retrieval (LLM08) | `tests/test_rag_security.py` |
 
 ## Stack
@@ -100,6 +103,7 @@ make setup                    # pip install + copy .env.example
 make ingest
 
 make unit                     # fast tests, no API keys (~5s)
+make learn-s2                 # Session 2 learner track (ingest guards + chunking)
 make serve                    # Streamlit: RAG + Agent + Eval tabs
 make api                      # FastAPI on :8000
 

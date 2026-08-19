@@ -1,0 +1,30 @@
+# Session 2 learner lab — ingest + embeddings (no paid API)
+
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["scratch*"]
+
+[project]
+name = "ai-qa-from-scratch-session2"
+version = "0.2.0"
+description = "Learner track: ingest path guards, chunking, local embeddings"
+requires-python = ">=3.11"
+dependencies = [
+    "python-dotenv>=1.0,<3",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3,<9",
+]
+ingest = [
+    "pypdf>=5.1,<7",
+    "chromadb>=0.5.20,<2",
+    "sentence-transformers>=3.0,<6",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

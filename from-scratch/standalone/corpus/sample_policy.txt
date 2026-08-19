@@ -1,0 +1,41 @@
+Internal AI Use Policy
+Example Corp — training corpus for the AI QA lab (not legal advice)
+
+Article 1 Definitions
+High-risk AI means a system that is used to evaluate people for hiring, firing,
+credit, or insurance. A general-purpose chatbot used only for internal FAQ
+is not high-risk under this policy. Providers must document the intended
+purpose of every system before it is deployed to employees or customers.
+
+Article 5 Prohibited practices
+The company must not use AI for social scoring of employees. The company
+must not deploy real-time remote biometric identification in offices except
+where a written legal basis exists and a human reviewer is in the loop.
+Prompt-injection experiments against production systems are prohibited
+unless they run in the isolated QA environment described in Article 9.
+
+Article 6 Classification rules
+A system is classified as high-risk when it materially influences a decision
+about a person's access to work, money, or essential services. If the system
+only drafts text that a human must approve, it is not high-risk, but the
+human review must be real — a rubber-stamp does not count. Classification
+must be recorded in the system card before go-live.
+
+Article 9 Risk management
+Every high-risk system must have a written risk-management process. The
+process is reviewed at least once per year, and after any serious incident.
+The process must include: a golden evaluation set, an adversarial prompt
+suite, a quality gate that can block a release, and an owner who can be
+named in an audit. Residual risk after mitigations must be documented.
+
+Article 10 Data and ingest
+Training and retrieval corpora must come from an allowlisted folder. Files
+from email attachments or personal drives must not be ingested. Each ingest
+run must be idempotent: delete the old index, then write a new one, and
+record the embedding model name. Mixing two embedding models in one index
+is a defect.
+
+Article 13 Transparency
+Users must be told when they are interacting with an AI system. Answers
+that use retrieved policy text must cite the article number. If the policy
+does not contain the answer, the system must refuse rather than guess.

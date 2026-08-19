@@ -24,6 +24,13 @@ api:
 unit:
 	$(PY) -m pytest tests/ -v
 
+# Session 2 learner track (no API keys, no MiniLM download)
+learn-s2:
+	$(PY) -m pytest from-scratch/tests -v
+
+learn-s3:
+	$(PY) -m pytest from-scratch/tests/test_rag.py -v
+
 eval-fast:
 	$(PY) -m pytest tests/ eval/test_adversarial.py eval/agent/test_adversarial.py eval/test_budget.py -v -m "not slow" --tb=short
 	$(PY) -m eval.gate --markdown eval/reports/gate-summary.md || true
