@@ -83,6 +83,7 @@ Run `make unit` on every change; run `make eval-full` before merging eval-relate
 | Agent trajectory QA | `eval/agent/`, `docs/AGENT_QA.md` |
 | Observability for drift debug | `app/observability.py` + Langfuse |
 | Fast unit tests (no API) | `tests/` |
+| Build-from-scratch Session 2 | `from-scratch/` |
 | Poisoned retrieval (LLM08) | `tests/test_rag_security.py` |
 
 ## Stack
@@ -102,6 +103,7 @@ make setup                    # pip install + copy .env.example
 make ingest
 
 make unit                     # fast tests, no API keys (~5s)
+make learn-s2                 # Session 2 learner track (ingest guards + chunking)
 make serve                    # Streamlit: RAG + Agent + Eval tabs
 make api                      # FastAPI on :8000
 
